@@ -35,16 +35,327 @@ function debounce(fn, delay) {
 }
 
 // ─── Named Constants ─────────────────────────────────────────────────────────────────────────────
-const DEBOUNCE_TRANSLATE_MS = 400;
-const KPI_UPDATE_INTERVAL_MS = 5000;
-const DASHBOARD_REFRESH_MS = 8000;
-const CROWD_SIM_INTERVAL_MS = 1500;
-const COUNTER_REFRESH_MS = 30000;
-const PARTICLE_COUNT = 60;
-const PARTICLE_CONNECTION_DIST = 120;
-const CHAT_RESPONSE_BASE_MS = 1000;
-const CHAT_RESPONSE_JITTER_MS = 800;
-const MAX_INPUT_LENGTH = 500;
+const DEBOUNCE_TRANSLATE_MS        = 400;
+const KPI_UPDATE_INTERVAL_MS       = 5000;
+const DASHBOARD_REFRESH_MS         = 8000;
+const CROWD_SIM_INTERVAL_MS        = 1500;
+const COUNTER_REFRESH_MS           = 30000;
+const PARTICLE_COUNT               = 60;
+const PARTICLE_CONNECTION_DIST     = 120;
+const CHAT_RESPONSE_BASE_MS        = 1000;
+const CHAT_RESPONSE_JITTER_MS      = 800;
+const MAX_INPUT_LENGTH             = 500;
+const RATE_LIMIT_MAX               = 10;   // max messages per window
+const RATE_LIMIT_WINDOW_MS         = 60000; // 1 minute
+const REALTIME_CROWD_INTERVAL_MS   = 8000;
+const REALTIME_INCIDENT_INTERVAL_MS= 30000;
+const REALTIME_WEATHER_INTERVAL_MS = 60000;
+
+// ─── Efficiency: throttle() ──────────────────────────────────────────────────
+/**
+ * Returns a throttled version of `fn` that fires at most once per `limit` ms.
+ * @param {Function} fn - Function to throttle
+ * @param {number} limit - Minimum ms between invocations
+ * @returns {Function} Throttled function
+ */
+function throttle(fn, limit) {
+  let lastCall = 0;
+  return function(...args) {
+    const now = Date.now();
+    if (now - lastCall >= limit) {
+      lastCall = now;
+      return fn.apply(this, args);
+    }
+  };
+}
+
+// ─── Efficiency: memoize() ───────────────────────────────────────────────────
+/**
+ * Returns a memoized version of `fn`. Results are cached by the first argument
+ * (serialised via JSON.stringify for object keys).
+ * @param {Function} fn - Pure function to memoize
+ * @returns {Function} Memoized function
+ */
+function memoize(fn) {
+  const cache = new Map();
+  return function(...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key);
+    const result = fn.apply(this, args);
+    cache.set(key, result);
+    return result;
+  };
+}
+
+// ─── Security: safeJSON() ────────────────────────────────────────────────────
+/**
+ * Safely parses a JSON string. Returns `fallback` (default: null) on error.
+ * @param {string} str - JSON string to parse
+ * @param {*} fallback - Value to return on parse failure
+ * @returns {*} Parsed value or fallback
+ */
+function safeJSON(str, fallback = null) {
+  if (!str || typeof str !== 'string') return fallback;
+  try { return JSON.parse(str); } catch { return fallback; }
+}
+
+// ─── Security: filterPromptInjection() ───────────────────────────────────────
+/**
+ * Detects common prompt-injection and jailbreak patterns.
+ * @param {string} text - Raw user input
+ * @returns {{ safe: boolean, text: string, reason?: string }}
+ */
+function filterPromptInjection(text) {
+  const sanitized = sanitizeHTML(String(text || ''));
+  const lower = text.toLowerCase();
+  const dangerPatterns = [
+    'ignore previous', 'ignore all', 'disregard instructions',
+    'jailbreak', 'dan mode', 'developer mode', 'unrestricted',
+    'bypass', 'override instructions', 'forget your instructions',
+    'act as', 'pretend you are', 'roleplay as', 'simulate',
+    'do anything now', 'no restrictions', 'without limitations',
+  ];
+  for (const pattern of dangerPatterns) {
+    if (lower.includes(pattern)) {
+      AuditLog.append({
+        ts: new Date().toISOString(), user: STATE.currentPersona,
+        intent: 'prompt_injection_attempt', decision: 'BLOCKED',
+        reason: `Matched pattern: "${pattern}"`, confidence: 1.0,
+        outcome: 'Input rejected'
+      });
+      return { safe: false, text: sanitized, reason: `Blocked pattern: "${pattern}"` };
+    }
+  }
+  return { safe: true, text: sanitized };
+}
+
+// ─── Security: RateLimit ─────────────────────────────────────────────────────
+/**
+ * Simple in-memory rate limiter for chat/command inputs.
+ * Tracks timestamps within a rolling time window.
+ */
+const RateLimit = {
+  _log: [],
+  /**
+   * Returns true if the action is allowed under the rate limit.
+   * @returns {boolean}
+   */
+  check() {
+    const now = Date.now();
+    this._log = this._log.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+    if (this._log.length >= RATE_LIMIT_MAX) return false;
+    this._log.push(now);
+    return true;
+  },
+  /** Resets the rate limit log. */
+  reset() { this._log = []; },
+  /** Returns the number of requests in the current window. */
+  count() {
+    const now = Date.now();
+    return this._log.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS).length;
+  }
+};
+
+// ─── AI Audit Log ─────────────────────────────────────────────────────────────
+/**
+ * Persistent audit log for all AI decisions.
+ * Entries: { ts, user, intent, decision, reason, confidence, outcome }
+ */
+const AuditLog = {
+  _entries: [],
+  /**
+   * Appends a new audit entry.
+   * @param {{ ts:string, user:string, intent:string, decision:string, reason:string, confidence:number, outcome:string }} entry
+   */
+  append(entry) {
+    this._entries.unshift({ ...entry, ts: entry.ts || new Date().toISOString() });
+    if (this._entries.length > 200) this._entries.pop(); // cap at 200
+    this._renderLog();
+  },
+  /** Returns all audit entries. */
+  getAll() { return this._entries; },
+  /** Clears all audit entries. */
+  clear() { this._entries = []; this._renderLog(); },
+  /** Exports the audit log as a CSV download. */
+  export() {
+    const header = 'Timestamp,User,Intent,Decision,Reason,Confidence,Outcome\n';
+    const rows = this._entries.map(e =>
+      `"${e.ts}","${e.user}","${e.intent}","${e.decision}","${(e.reason||'').replace(/"/g,"'")}","${e.confidence}","${e.outcome}"`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `venueiq-audit-${Date.now()}.csv`;
+    a.click();
+  },
+  /** Renders the audit log table in the UI. */
+  _renderLog() {
+    const tbody = document.getElementById('auditLogBody');
+    if (!tbody) return;
+    tbody.innerHTML = this._entries.slice(0, 50).map(e => `
+      <tr>
+        <td>${sanitizeHTML(e.ts.slice(11,19))}</td>
+        <td><span class="audit-badge">${sanitizeHTML(e.user || 'system')}</span></td>
+        <td>${sanitizeHTML(e.intent || '')}</td>
+        <td>${sanitizeHTML(e.decision || '')}</td>
+        <td>${Math.round((e.confidence||0)*100)}%</td>
+        <td><span class="audit-outcome">${sanitizeHTML(e.outcome || '')}</span></td>
+      </tr>`).join('');
+  }
+};
+
+// ─── Accessibility: announce() ────────────────────────────────────────────────
+/**
+ * Injects a message into the `aria-live="assertive"` announcer for screen readers.
+ * @param {string} text - The message to announce
+ */
+function announce(text) {
+  const el = document.getElementById('srAnnouncer');
+  if (!el) return;
+  el.textContent = '';
+  // Force re-announcement even for same string
+  requestAnimationFrame(() => { el.textContent = sanitizeHTML(String(text || '')); });
+}
+
+/**
+ * Uses the Web Speech API to speak text aloud.
+ * @param {string} text - Text to speak
+ */
+function speakText(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(String(text || ''));
+  utt.lang = 'en-US';
+  utt.rate = 0.95;
+  window.speechSynthesis.speak(utt);
+}
+
+// ─── Accessibility: Panel Toggles ────────────────────────────────────────────
+/**
+ * Toggles the floating accessibility panel visibility.
+ */
+function toggleAccessibility() {
+  const panel = document.getElementById('a11yPanel');
+  if (!panel) return;
+  const open = panel.classList.toggle('open');
+  const btn  = document.getElementById('a11yToggleBtn');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+/**
+ * Applies or removes the high-contrast theme class.
+ * @param {boolean} on - true to enable
+ */
+function applyHighContrast(on) {
+  document.body.classList.toggle('high-contrast', on);
+  announce(on ? 'High contrast mode enabled' : 'High contrast mode disabled');
+}
+
+/**
+ * Applies or removes the large-text class (scales fonts 1.25×).
+ * @param {boolean} on - true to enable
+ */
+function applyLargeText(on) {
+  document.body.classList.toggle('large-text', on);
+  announce(on ? 'Large text mode enabled' : 'Large text mode disabled');
+}
+
+/**
+ * Applies or removes the reduced-motion class (disables CSS animations).
+ * @param {boolean} on - true to enable
+ */
+function applyReducedMotion(on) {
+  document.body.classList.toggle('reduce-motion', on);
+  announce(on ? 'Reduced motion enabled' : 'Reduced motion disabled');
+}
+
+// ─── AI Decision Engine: buildAIDecision() ───────────────────────────────────
+/**
+ * Constructs a structured AI decision object for a given query/persona.
+ * @param {string} persona - 'fan' | 'staff' | 'volunteer' | 'organizer'
+ * @param {string} intent  - Detected intent key (e.g., 'seat', 'crowd')
+ * @param {string} query   - Raw user query text
+ * @returns {{ intent, role, context, decision, reason, confidence, alternative, expectedOutcome }}
+ */
+function buildAIDecision(persona, intent, query) {
+  const intentMap = {
+    seat:     { decision:'Navigate to Block D, Row 12, Seat 7', reason:'Shortest path via Concourse B is currently least congested', alternative:'Route via Gate 6 (2 min longer, less crowded)', expectedOutcome:'Reach seat in under 3 minutes' },
+    food:     { decision:'Proceed to Food Court C (45m away)', reason:'Food Court C has 4-min wait vs 12-min at Court A', alternative:'Snack Bar B2 — zero queue, limited options', expectedOutcome:'Served within 6 minutes' },
+    toilet:   { decision:'Use Restroom at Concourse B, Stall 3', reason:'Nearest accessible facility with current low occupancy', alternative:'Level 2 East Wing restroom (60m, low wait)', expectedOutcome:'2-minute round trip' },
+    crowd:    { decision:'Stay in current zone — avoid Zone F', reason:'Zone F at 98% capacity; risk of bottleneck at Gate 7', alternative:'Relocate to Zone B (82% capacity, comfortable)', expectedOutcome:'Reduced crowding risk' },
+    exit:     { decision:'Use Gate 3 (East) in 10 minutes', reason:'Post-match crowd disperses in 8-10 mins; Gate 3 lowest traffic', alternative:'Gate 6 North — now, 8-min walk, minimal queue', expectedOutcome:'Exit in under 12 minutes total' },
+    incident: { decision:'Deploy Protocol Alpha-3 to Zone F', reason:'Density at 98% with increasing ingress rate (340/min)', alternative:'Protocol Bravo-1 if crowd does not disperse in 5 min', expectedOutcome:'Density reduced to ~78% within 8 minutes' },
+    patrol:   { decision:'Redeploy 2 officers from Zone B to Zone F perimeter', reason:'Zone B at 72% — 8-min coverage gap detected near Exit 7', alternative:'Request external security support from Gate control', expectedOutcome:'Full perimeter coverage restored in 4 minutes' },
+    summary:  { decision:'Activate halftime crowd management plan', reason:'Concession sales up 12%; peak footfall expected at 14:30', alternative:'Staggered gate management if surge exceeds projection', expectedOutcome:'Revenue target exceeded; incident-free event' },
+  };
+  const roleMap = { fan:'Fan Assistant', staff:'Operations Commander', volunteer:'Volunteer Coordinator', organizer:'Event Director' };
+  const map = intentMap[intent] || intentMap.crowd;
+  const confidence = parseFloat((Math.random() * 0.15 + 0.82).toFixed(2));
+  return {
+    intent: intent || 'general_query',
+    role: roleMap[persona] || 'AI Assistant',
+    context: `FIFA World Cup 2026 venue — Query: "${sanitizeHTML(String(query || '').slice(0, 80))}"`,
+    decision: map.decision,
+    reason: map.reason,
+    confidence,
+    alternative: map.alternative,
+    expectedOutcome: map.expectedOutcome,
+  };
+}
+
+// ─── Real-Time Simulation ─────────────────────────────────────────────────────
+/**
+ * Starts background real-time simulation of crowd, incidents, weather.
+ * Updates STATE and rerenders relevant UI regions automatically.
+ */
+function startRealTimeSimulation() {
+  // Crowd fluctuation
+  setInterval(() => {
+    if (!STATE.crowdSim) return;
+    ZONES.forEach(z => {
+      const delta = Math.floor((Math.random() - 0.45) * z.cap * 0.02);
+      z.count = Math.max(0, Math.min(z.cap, z.count + delta));
+    });
+    if (STATE.currentSection === 'crowd') renderZoneCards();
+    if (STATE.currentSection === 'dashboard') drawZoneChart();
+  }, REALTIME_CROWD_INTERVAL_MS);
+
+  // Random incident generation
+  setInterval(() => {
+    const severities = ['low', 'medium', 'critical'];
+    const titles = [
+      'Queue overflow at Gate 3', 'Suspicious package reported — Concourse A',
+      'Fan requiring medical attention — Section C8',
+      'Food court D nearing capacity', 'Lost child reported near Gate 6',
+      'Unauthorized access attempt — VIP zone',
+    ];
+    const newInc = {
+      id: INCIDENTS.length + Math.floor(Math.random() * 1000),
+      sev: severities[Math.floor(Math.random() * severities.length)],
+      title: titles[Math.floor(Math.random() * titles.length)],
+      time: new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }),
+      desc: 'AI-detected event. Automated triage in progress.',
+      status: 'active',
+    };
+    INCIDENTS.unshift(newInc);
+    if (INCIDENTS.length > 20) INCIDENTS.pop();
+
+    // Update UI
+    if (STATE.currentSection === 'decisions') filterIncidents('all', null);
+    const ac = document.getElementById('alert-count');
+    if (ac) ac.textContent = INCIDENTS.filter(i => i.status === 'active').length;
+
+    // Screen reader announcement for critical
+    if (newInc.sev === 'critical') announce(`Critical alert: ${newInc.title}`);
+
+    // Audit log
+    AuditLog.append({
+      ts: new Date().toISOString(), user: 'system',
+      intent: 'auto_incident_detection', decision: `Flagged: ${newInc.title}`,
+      reason: 'Pattern threshold exceeded', confidence: 0.89, outcome: 'Pending review'
+    });
+  }, REALTIME_INCIDENT_INTERVAL_MS);
+}
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const STATE = {

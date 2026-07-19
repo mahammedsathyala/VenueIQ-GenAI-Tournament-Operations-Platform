@@ -1207,3 +1207,149 @@ canvas { display: block; }
   .bottom-row { grid-template-columns: 1fr; }
   .hero-title { font-size: 2.2rem; }
 }
+
+/* ════════════════════════════ ACCESSIBILITY MODES ═══════════════════════════ */
+
+/* High contrast mode */
+.high-contrast {
+  --c-bg: #000000;
+  --c-card: #111111;
+  --c-text: #ffffff;
+  --c-text-muted: #dddddd;
+  --c-border: rgba(255,255,255,.4);
+  --c-purple: #bb86fc;
+  --c-cyan: #03dac6;
+  filter: contrast(1.15);
+}
+.high-contrast .navbar,
+.high-contrast .section-card,
+.high-contrast .card { border: 2px solid rgba(255,255,255,.3); }
+.high-contrast *:focus-visible { outline: 3px solid #ff0 !important; outline-offset: 3px !important; }
+
+/* Large text mode — scale fonts 1.25× */
+.large-text { font-size: 18px; }
+.large-text .hero-title { font-size: clamp(2.5rem,6vw,5rem); }
+.large-text .section-title { font-size: 1.6rem; }
+.large-text .card-title { font-size: 1.1rem; }
+.large-text p, .large-text li, .large-text label { line-height: 1.8; }
+
+/* Reduced motion — disable all animations/transitions */
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after,
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* ════════════════════════════ ACCESSIBILITY PANEL ═══════════════════════════ */
+.a11y-fab {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 2000;
+  background: linear-gradient(135deg,var(--c-purple),var(--c-cyan));
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 24px rgba(124,58,237,.45);
+  cursor: pointer; border: none; font-size: 1.3rem;
+  transition: transform .2s, box-shadow .2s;
+}
+.a11y-fab:hover { transform: scale(1.1); box-shadow: 0 6px 32px rgba(124,58,237,.6); }
+.a11y-fab:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.a11y-panel {
+  position: fixed; bottom: 5.5rem; right: 1.5rem; z-index: 1999;
+  background: var(--c-card); border: 1px solid var(--c-border);
+  border-radius: 16px; padding: 1.25rem; width: 260px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  transform: translateY(20px) scale(.95);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+.a11y-panel.open { opacity: 1; transform: none; pointer-events: all; }
+.a11y-panel-title {
+  font-size: .85rem; font-weight: 700; color: var(--c-text-muted);
+  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem;
+}
+.a11y-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .6rem 0; border-bottom: 1px solid var(--c-border);
+  font-size: .875rem;
+}
+.a11y-toggle-row:last-of-type { border-bottom: none; }
+.a11y-toggle-row label { cursor: pointer; user-select: none; }
+/* Toggle switch */
+.a11y-switch { position:relative; display:inline-block; width:40px; height:22px; }
+.a11y-switch input { opacity:0; width:0; height:0; }
+.a11y-slider {
+  position:absolute; cursor:pointer; inset:0;
+  background:rgba(255,255,255,.1); border-radius:999px; transition:.2s;
+}
+.a11y-slider:before {
+  content:''; position:absolute; height:16px; width:16px; left:3px; bottom:3px;
+  background:#fff; border-radius:50%; transition:.2s;
+}
+.a11y-switch input:checked + .a11y-slider { background:var(--c-purple); }
+.a11y-switch input:checked + .a11y-slider:before { transform:translateX(18px); }
+.a11y-switch input:focus-visible + .a11y-slider { outline:2px solid var(--c-cyan); outline-offset:2px; }
+
+/* SR Announcer (visually hidden but ARIA live) */
+.sr-announcer {
+  position:absolute; width:1px; height:1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0; padding:0; margin:-1px;
+}
+
+/* ════════════════════════════ AI DECISION CARD ══════════════════════════════ */
+.ai-decision-card {
+  background: rgba(124,58,237,.06);
+  border: 1px solid rgba(124,58,237,.2);
+  border-radius: 10px; padding: 1rem; margin-top: .5rem; font-size: .82rem;
+}
+.ai-decision-card .adc-row {
+  display: flex; justify-content: space-between;
+  padding: .3rem 0; border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.ai-decision-card .adc-row:last-child { border-bottom: none; }
+.adc-label { color: var(--c-text-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
+.adc-value { color: var(--c-text); font-weight: 500; max-width: 65%; text-align: right; }
+.adc-confidence-bar {
+  height: 4px; background: rgba(255,255,255,.08); border-radius:999px;
+  overflow: hidden; margin-top: .5rem;
+}
+.adc-confidence-fill {
+  height: 100%; background: linear-gradient(90deg,var(--c-purple),var(--c-cyan));
+  border-radius: 999px; transition: width .5s ease;
+}
+
+/* ════════════════════════════ AUDIT LOG ═════════════════════════════════════ */
+.audit-table-wrap { overflow-x: auto; }
+.audit-table {
+  width: 100%; border-collapse: collapse; font-size: .8rem;
+  font-family: var(--font-mono, monospace);
+}
+.audit-table th {
+  padding: .5rem .75rem; text-align: left; font-size: .7rem;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--c-text-muted);
+  border-bottom: 1px solid var(--c-border);
+}
+.audit-table td {
+  padding: .45rem .75rem; border-bottom: 1px solid rgba(255,255,255,.04);
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.audit-table tr:hover td { background: rgba(255,255,255,.02); }
+.audit-badge {
+  background: rgba(124,58,237,.15); color: var(--c-purple);
+  padding: .15rem .5rem; border-radius: 999px; font-size: .7rem; font-weight: 600;
+}
+.audit-outcome { color: var(--c-green, #10b981); font-size: .75rem; }
+
+/* ════════════════════════════ COMMAND MESSAGES ══════════════════════════════ */
+.command-msg {
+  padding: .6rem .9rem; border-radius: 8px; margin-bottom: .5rem; font-size: .875rem;
+  line-height: 1.5; border-left: 3px solid;
+}
+.command-msg.user { background:rgba(6,182,212,.06); border-color:var(--c-cyan); }
+.command-msg.ai   { background:rgba(124,58,237,.06); border-color:var(--c-purple); }
+.cmd-badge {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  margin-right: .4rem; opacity: .7;
+}
+

@@ -3,231 +3,226 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VenueIQ — Test Runner</title>
+  <title>VenueIQ — Test Suite</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #060b17; --card: #0d1626; --border: rgba(99,120,180,.15);
-      --purple: #7c3aed; --cyan: #06b6d4; --green: #10b981;
-      --red: #ef4444; --yellow: #eab308; --text: #e2e8f0; --muted: #8095b8;
+      --bg:#060b17;--card:#0d1626;--border:rgba(99,120,180,.15);
+      --purple:#7c3aed;--cyan:#06b6d4;--green:#10b981;--red:#ef4444;
+      --yellow:#eab308;--text:#e2e8f0;--muted:#8095b8;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
-    .header {
-      background: rgba(13,22,38,.95); border-bottom: 1px solid var(--border);
-      padding: 1.5rem 2rem; display: flex; align-items: center; gap: 1.5rem;
-      position: sticky; top: 0; z-index: 10; backdrop-filter: blur(20px);
-    }
-    .header-logo { font-size: 1.5rem; font-weight: 800; }
-    .header-logo span { color: var(--purple); }
-    .header-sub { color: var(--muted); font-size: .9rem; }
-    .header-score {
-      margin-left: auto; background: linear-gradient(135deg,var(--purple),var(--cyan));
-      padding: .5rem 1.2rem; border-radius: 999px; font-weight: 700; font-size: 1.1rem;
-    }
-    .run-btn {
-      background: linear-gradient(135deg,var(--purple),var(--cyan));
-      border: none; border-radius: 8px; color: white; font-weight: 600;
-      padding: .65rem 1.5rem; cursor: pointer; font-family: inherit; font-size: .9rem;
-      transition: opacity .2s; white-space: nowrap;
-    }
-    .run-btn:hover { opacity: .85; }
+    .header{background:rgba(13,22,38,.95);border-bottom:1px solid var(--border);
+      padding:1.25rem 2rem;display:flex;align-items:center;gap:1.2rem;
+      position:sticky;top:0;z-index:10;backdrop-filter:blur(20px);}
+    .header-logo{font-size:1.4rem;font-weight:800;}
+    .header-logo span{color:var(--purple);}
+    .header-sub{color:var(--muted);font-size:.85rem;flex:1;}
+    .header-score{background:linear-gradient(135deg,var(--purple),var(--cyan));
+      padding:.45rem 1.1rem;border-radius:999px;font-weight:700;font-size:1rem;}
+    .run-btn{background:linear-gradient(135deg,var(--purple),var(--cyan));
+      border:none;border-radius:8px;color:#fff;font-weight:600;
+      padding:.6rem 1.4rem;cursor:pointer;font-family:inherit;font-size:.875rem;
+      transition:opacity .2s;}
+    .run-btn:hover{opacity:.85;}
 
-    .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+    .container{max-width:1100px;margin:0 auto;padding:2rem;}
 
-    .test-summary {
-      background: var(--card); border-radius: 16px; padding: 2rem;
-      margin-bottom: 2rem; border: 1px solid var(--border); text-align: center;
-    }
-    .test-summary.all-pass { border-color: rgba(16,185,129,.3); }
-    .test-summary.has-fail { border-color: rgba(239,68,68,.3); }
-    .ts-score { font-size: 3.5rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-    .all-pass .ts-score { color: var(--green); }
-    .has-fail .ts-score { color: var(--yellow); }
-    .ts-label { color: var(--muted); margin: .3rem 0 1rem; font-size: .95rem; }
-    .ts-stats { display: flex; justify-content: center; gap: 2rem; margin-bottom: 1rem; }
-    .ts-pass { color: var(--green); font-weight: 600; }
-    .ts-fail { color: var(--red); font-weight: 600; }
-    .ts-bar { background: rgba(255,255,255,.08); border-radius: 999px; height: 8px; overflow: hidden; }
-    .ts-bar-fill { height: 100%; background: linear-gradient(90deg,var(--purple),var(--green)); border-radius: 999px; transition: width .8s ease; }
+    .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      gap:1rem;margin-bottom:2rem;}
+    .summary-card{background:var(--card);border:1px solid var(--border);
+      border-radius:12px;padding:1.2rem;text-align:center;}
+    .sc-num{font-size:2.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;}
+    .sc-label{color:var(--muted);font-size:.78rem;margin-top:.25rem;}
+    .sc-pass .sc-num{color:var(--green);}
+    .sc-fail .sc-num{color:var(--red);}
+    .sc-total .sc-num{color:var(--cyan);}
+    .sc-suites .sc-num{color:var(--purple);}
 
-    .suite-block { margin-bottom: 1.2rem; }
-    .suite-header {
-      background: rgba(13,22,38,.8); border: 1px solid var(--border);
-      border-radius: 10px 10px 0 0; padding: .75rem 1.2rem;
-      font-weight: 600; font-size: .95rem; display: flex; align-items: center; gap: .5rem;
-    }
-    .suite-count { color: var(--muted); font-size: .8rem; margin-left: auto; }
-    .suite-tests {
-      background: rgba(6,11,23,.5); border: 1px solid var(--border); border-top: none;
-      border-radius: 0 0 10px 10px; overflow: hidden;
-    }
-    .test-row {
-      display: grid; grid-template-columns: 20px 1fr auto;
-      gap: .5rem; align-items: start;
-      padding: .55rem 1.2rem; font-size: .85rem;
-      border-bottom: 1px solid rgba(255,255,255,.04);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .test-row:last-child { border-bottom: none; }
-    .test-row.pass { background: rgba(16,185,129,.02); }
-    .test-row.fail { background: rgba(239,68,68,.04); }
-    .test-icon { font-weight: 700; }
-    .pass .test-icon { color: var(--green); }
-    .fail .test-icon { color: var(--red); }
-    .test-err { color: var(--red); font-size: .75rem; grid-column: 2 / -1; margin-top: .25rem; opacity: .8; }
+    .progress-bar{background:rgba(255,255,255,.08);border-radius:999px;
+      height:10px;overflow:hidden;margin-bottom:2rem;}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--green));
+      border-radius:999px;transition:width 1s ease;}
 
-    .loading { text-align: center; padding: 4rem; color: var(--muted); }
-    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 1rem; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .suite-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:1.2rem;}
+    .suite-block{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+    .suite-header{padding:.75rem 1.2rem;font-weight:600;font-size:.9rem;
+      display:flex;align-items:center;gap:.5rem;
+      background:rgba(124,58,237,.06);border-bottom:1px solid var(--border);}
+    .suite-count{margin-left:auto;color:var(--muted);font-size:.78rem;
+      font-family:'JetBrains Mono',monospace;}
+    .suite-badge{font-size:.7rem;padding:.15rem .5rem;border-radius:999px;font-weight:700;}
+    .badge-pass{background:rgba(16,185,129,.15);color:var(--green);}
+    .badge-fail{background:rgba(239,68,68,.15);color:var(--red);}
+    .badge-mixed{background:rgba(234,179,8,.15);color:var(--yellow);}
 
-    .info-box {
-      background: rgba(124,58,237,.08); border: 1px solid rgba(124,58,237,.3);
-      border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1.5rem; font-size: .875rem;
-      color: var(--muted); line-height: 1.6;
-    }
-    .info-box strong { color: var(--text); }
+    .suite-tests{padding:.5rem 0;}
+    .test-row{display:grid;grid-template-columns:18px 1fr;gap:.5rem;
+      padding:.4rem 1.2rem;font-size:.8rem;font-family:'JetBrains Mono',monospace;
+      border-bottom:1px solid rgba(255,255,255,.03);}
+    .test-row:last-child{border-bottom:none;}
+    .test-row.pass{background:rgba(16,185,129,.02);}
+    .test-row.fail{background:rgba(239,68,68,.03);}
+    .test-icon{font-weight:700;}
+    .pass .test-icon{color:var(--green);}
+    .fail .test-icon{color:var(--red);}
+    .test-err{color:var(--red);font-size:.72rem;grid-column:2/-1;opacity:.8;margin-top:.2rem;}
+
+    .info-box{background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);
+      border-radius:10px;padding:.9rem 1.2rem;margin-bottom:1.5rem;
+      font-size:.85rem;color:var(--muted);line-height:1.6;}
+    .info-box strong{color:var(--text);}
+    .info-box code{background:rgba(255,255,255,.06);padding:.1rem .4rem;
+      border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem;}
+
+    .loading{text-align:center;padding:4rem;color:var(--muted);}
+    .spinner{width:40px;height:40px;border:3px solid var(--border);
+      border-top-color:var(--purple);border-radius:50%;
+      animation:spin .8s linear infinite;margin:0 auto 1rem;}
+    @keyframes spin{to{transform:rotate(360deg);}}
   </style>
 </head>
 <body>
 
-<!-- ═══ Minimal DOM stubs for DOM integration tests ═══ -->
-<!-- These mirror elements from index.html so DOM tests pass -->
+<!-- ═══════ Minimal DOM stubs (mirrors index.html elements) ═══════ -->
 <div style="display:none" aria-hidden="true">
-  <!-- Dashboard -->
-  <div id="alertStream"></div>
-  <div id="insightsList"></div>
-  <canvas id="heatmapCanvas" width="700" height="280"></canvas>
-  <canvas id="zoneChart" width="320" height="280"></canvas>
-  <div id="kpi-crowd"></div><div id="kpi-alerts"></div><div id="kpi-nav"></div><div id="kpi-assist"></div>
-  <div id="kpi-crowd-val"></div><div id="kpi-alert-val"></div><div id="kpi-nav-val"></div><div id="kpi-assist-val"></div>
-  <div id="spark-crowd"></div><div id="spark-alerts"></div><div id="spark-nav"></div><div id="spark-assist"></div>
-  <div id="lastUpdated"></div><div id="alert-count"></div>
-  <!-- Crowd -->
-  <canvas id="crowdMapCanvas" width="620" height="420"></canvas>
-  <button id="simBtn"></button>
-  <div id="zoneCards"></div>
-  <canvas id="forecastChart" width="340" height="160"></canvas>
-  <div id="predAlerts"></div><div id="routingList"></div>
-  <canvas id="flowChart" width="340" height="180"></canvas>
-  <canvas id="dwellChart" width="340" height="180"></canvas>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <main id="main-content" role="main"></main>
+  <div id="alertStream" role="log" aria-live="polite"></div>
+  <div id="insightsList" aria-live="polite"></div>
+  <div id="chatMessages" role="log" aria-live="polite"></div>
+  <div id="commandMessages" role="log" aria-live="polite"></div>
+  <div id="typingIndicator" style="display:none"></div>
+  <div id="incidentList" role="list" aria-live="polite"></div>
+  <div id="zoneCards" aria-live="polite"></div>
+  <div id="translateOutput" aria-live="polite"></div>
+  <div id="recommendList"></div>
+  <div id="resourceGrid"></div>
+  <div id="timeline"></div>
+  <div id="taskList"></div>
+  <div id="staffSummary"></div>
+  <div id="promptChips"></div>
+  <div id="langBars"></div>
+  <div id="langChips"></div>
+  <div id="stepsList"></div>
+  <div id="poiGrid"></div>
+  <div id="predAlerts"></div>
+  <div id="routingList"></div>
   <div id="gateUtil"></div>
-  <!-- Navigation -->
+  <div id="skillMatch"></div>
+  <div id="navOverlayInfo"></div>
+  <div id="lastUpdated"></div>
+  <div id="alert-count"></div>
+  <div id="kpi-crowd-val"></div>
+  <div id="kpi-nav-val"></div>
+  <div id="kpi-assist-val"></div>
+  <div id="auditLogBody"></div>
+  <div id="arModal" style="display:none" role="dialog" aria-modal="true"></div>
+  <div id="srAnnouncer" aria-live="assertive" aria-atomic="true"></div>
+  <input id="chatInput" type="text" />
+  <input id="commandInput" type="text" />
+  <textarea id="translateInput"></textarea>
+  <select id="chatLang"><option value="en">EN</option><option value="hi">HI</option></select>
+  <select id="toLang"><option value="hi">HI</option><option value="es">ES</option></select>
+  <select id="fromLang"><option value="en">EN</option></select>
+  <select id="uiLang"><option value="en">English</option></select>
   <select id="navDest">
     <option value="seat">Seat</option><option value="food">Food</option>
     <option value="toilet">Toilet</option><option value="medical">Medical</option>
     <option value="exit">Exit</option><option value="parking">Parking</option>
   </select>
+  <button id="simBtn" aria-pressed="false"></button>
+  <button id="voiceBtn" aria-pressed="false"></button>
+  <canvas id="heatmapCanvas" width="700" height="280"></canvas>
+  <canvas id="zoneChart" width="320" height="280"></canvas>
+  <canvas id="crowdMapCanvas" width="620" height="420"></canvas>
+  <canvas id="forecastChart" width="340" height="160"></canvas>
   <canvas id="navCanvas" width="640" height="440"></canvas>
-  <div id="navOverlayInfo"></div>
-  <div id="stepsList"></div><div id="poiGrid"></div>
-  <button id="nm-walking" class="nav-mode-btn active"></button>
-  <button id="nm-accessible" class="nav-mode-btn"></button>
-  <button id="nm-fastest" class="nav-mode-btn"></button>
-  <button id="nm-scenic" class="nav-mode-btn"></button>
-  <!-- Decision Hub -->
-  <div id="incidentList"></div>
-  <div id="commandMessages"></div>
-  <input id="commandInput" type="text" />
-  <div id="recommendList"></div>
-  <div id="resourceGrid"></div>
-  <div id="timeline"></div>
-  <!-- AI Assistant -->
-  <div id="chatMessages"></div>
-  <input id="chatInput" type="text" />
-  <select id="chatLang"><option value="en">EN</option></select>
-  <div id="typingIndicator"></div>
-  <button id="voiceBtn"></button>
-  <button id="sendBtn"></button>
-  <div id="promptChips"></div>
-  <div id="langBars"></div>
-  <div id="langChips"></div>
-  <select id="uiLang"><option value="en">English</option></select>
-  <textarea id="translateInput"></textarea>
-  <div id="translateOutput"></div>
-  <select id="fromLang"><option value="en">EN</option></select>
-  <select id="toLang"><option value="hi">HI</option></select>
-  <!-- Staff -->
   <canvas id="staffCanvas" width="620" height="380"></canvas>
-  <div id="staffSummary"></div><div id="taskList"></div>
   <canvas id="responseChart" width="340" height="180"></canvas>
   <canvas id="coverageChart" width="340" height="180"></canvas>
-  <div id="skillMatch"></div>
-  <!-- Misc -->
-  <div id="hero-section"></div>
-  <main id="app-main"></main>
+  <canvas id="flowChart" width="340" height="180"></canvas>
+  <canvas id="dwellChart" width="340" height="180"></canvas>
   <canvas id="heroCanvas"></canvas>
   <div id="navbar"></div>
-  <div id="arModal" style="display:none;"></div>
-  <!-- Nav links (6 required) -->
+  <div id="hero-section"></div>
+  <main id="app-main"></main>
   <nav>
     <ul>
-      <li><a href="#dashboard" class="nav-link active" id="nav-dashboard">Dashboard</a></li>
-      <li><a href="#crowd" class="nav-link" id="nav-crowd">Crowd AI</a></li>
-      <li><a href="#navigation" class="nav-link" id="nav-navigation">Navigation</a></li>
-      <li><a href="#decisions" class="nav-link" id="nav-decisions">Decision Hub</a></li>
-      <li><a href="#assistant" class="nav-link" id="nav-assistant">AI Assistant</a></li>
-      <li><a href="#staff" class="nav-link" id="nav-staff">Staff Ops</a></li>
+      <li><a href="#dashboard" class="nav-link active incident-filter" id="nav-dashboard" role="menuitem">Dashboard</a></li>
+      <li><a href="#crowd"     class="nav-link" id="nav-crowd" role="menuitem">Crowd</a></li>
+      <li><a href="#navigation" class="nav-link" id="nav-navigation" role="menuitem">Navigation</a></li>
+      <li><a href="#decisions" class="nav-link" id="nav-decisions" role="menuitem">Decisions</a></li>
+      <li><a href="#assistant" class="nav-link" id="nav-assistant" role="menuitem">Assistant</a></li>
+      <li><a href="#staff"     class="nav-link" id="nav-staff" role="menuitem">Staff</a></li>
     </ul>
   </nav>
-  <!-- Persona cards (4 required) -->
   <div class="persona-card active" id="persona-fan"></div>
   <div class="persona-card" id="persona-staff"></div>
   <div class="persona-card" id="persona-volunteer"></div>
   <div class="persona-card" id="persona-organizer"></div>
+  <button class="nav-mode-btn active" id="nm-walking" aria-pressed="true"></button>
+  <button class="nav-mode-btn" id="nm-accessible" aria-pressed="false"></button>
+  <button class="nav-mode-btn" id="nm-fastest" aria-pressed="false"></button>
 </div>
 
-<!-- ═══ UI ═══ -->
+<!-- ═══════ UI ═══════ -->
 <div class="header">
   <div>
-    <div class="header-logo">Venue<span>IQ</span> — Test Runner</div>
-    <div class="header-sub">Automated quality assurance suite · <span id="test-count">Loading...</span></div>
+    <div class="header-logo">Venue<span>IQ</span> — Test Suite</div>
+    <div class="header-sub" id="test-count">Loading tests…</div>
   </div>
-  <button class="run-btn" onclick="location.reload()">▶ Re-run Tests</button>
-  <div class="header-score" id="test-score">Running...</div>
+  <button class="run-btn" onclick="location.reload()">▶ Re-run All</button>
+  <div class="header-score" id="test-score">Running…</div>
 </div>
 
 <div class="container">
   <div class="info-box">
-    <strong>How this works:</strong> Loads <code>app.js</code> directly, injects minimal DOM stubs, then runs
-    all 15 test suites covering data integrity, AI logic, security, DOM integration, and utilities.
-    No build tools, no external dependencies, no iframe.
+    <strong>9 Test Suites · 110+ Automated Tests.</strong>
+    Covers: Navigation · Chat · Dashboard · AI Engine · Transport ·
+    Incidents · Security · Accessibility · Utilities.
+    Loads <code>app.js</code> directly with DOM stubs. No build tools required.
   </div>
   <div id="test-results">
-    <div class="loading"><div class="spinner"></div>Loading test suite...</div>
+    <div class="loading"><div class="spinner"></div>Loading test suites…</div>
   </div>
 </div>
 
-<!-- Load app.js first (defines all globals: STATE, ZONES, getAIResponse, sanitizeHTML, etc.) -->
+<!-- 1. Core app -->
 <script src="../app.js"></script>
 
-<!-- Then load and run the tests -->
-<script>
-  function showLoadError(msg) {
-    document.getElementById('test-results').innerHTML =
-      `<div class="loading" style="color:#ef4444">❌ ${msg}</div>`;
-    document.getElementById('test-score').textContent = 'Error';
-  }
+<!-- 2. Shared framework (define describe/it/expect/runTests/TEST_RESULTS) -->
+<script src="test-framework.js"></script>
 
-  // Load test file dynamically after app.js has run
-  const testScript = document.createElement('script');
-  testScript.src = 'venueiq.test.js';
-  testScript.onload = () => {
+<!-- 3. Test suites (each adds to window.TEST_RESULTS) -->
+<script src="test_utils.js"></script>
+<script src="test_security.js"></script>
+<script src="test_navigation.js"></script>
+<script src="test_chat.js"></script>
+<script src="test_dashboard.js"></script>
+<script src="test_ai.js"></script>
+<script src="test_transport.js"></script>
+<script src="test_incident.js"></script>
+<script src="test_accessibility.js"></script>
+
+<!-- 4. Render results -->
+<script>
+  window.addEventListener('load', () => {
     try {
       runTests();
-      const passed = TEST_RESULTS.filter(r => r.pass).length;
-      const total  = TEST_RESULTS.length;
-      document.getElementById('test-score').textContent = `${Math.round(passed/total*100)}% passing`;
-      document.getElementById('test-count').textContent = `${total} tests in 15 suites`;
+      const total  = window.TEST_RESULTS.length;
+      const passed = window.TEST_RESULTS.filter(r => r.pass).length;
+      const pct    = total ? Math.round(passed/total*100) : 0;
+      document.getElementById('test-score').textContent = `${pct}% passing`;
+      document.getElementById('test-count').textContent =
+        `${passed}/${total} tests passing · 9 suites`;
     } catch(e) {
-      showLoadError(`Test runner error: ${e.message}`);
+      document.getElementById('test-results').innerHTML =
+        `<div class="loading" style="color:var(--red)">❌ Runner error: ${e.message}</div>`;
     }
-  };
-  testScript.onerror = (e) => {
-    showLoadError('Could not load venueiq.test.js — make sure the server is running at http://localhost:8765');
-  };
-  document.body.appendChild(testScript);
+  });
 </script>
 </body>
 </html>

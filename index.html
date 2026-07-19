@@ -724,6 +724,60 @@
   </div>
 </div>
 
+<!-- Screen Reader Announcer (aria-live assertive, visually hidden) -->
+<div id="srAnnouncer" class="sr-announcer" aria-live="assertive" aria-atomic="true" role="status"></div>
+
+<!-- ♿ Accessibility Panel FAB -->
+<button class="a11y-fab" id="a11yToggleBtn"
+  onclick="toggleAccessibility()"
+  aria-label="Open accessibility options"
+  aria-expanded="false"
+  aria-controls="a11yPanel">♿</button>
+
+<div class="a11y-panel" id="a11yPanel" role="dialog" aria-label="Accessibility options" aria-modal="false">
+  <div class="a11y-panel-title">Accessibility Options</div>
+
+  <div class="a11y-toggle-row">
+    <label for="toggleHighContrast">🎨 High Contrast</label>
+    <label class="a11y-switch">
+      <input type="checkbox" id="toggleHighContrast"
+        onchange="applyHighContrast(this.checked)"
+        aria-label="Toggle high contrast mode" />
+      <span class="a11y-slider"></span>
+    </label>
+  </div>
+
+  <div class="a11y-toggle-row">
+    <label for="toggleLargeText">🔤 Large Text</label>
+    <label class="a11y-switch">
+      <input type="checkbox" id="toggleLargeText"
+        onchange="applyLargeText(this.checked)"
+        aria-label="Toggle large text mode" />
+      <span class="a11y-slider"></span>
+    </label>
+  </div>
+
+  <div class="a11y-toggle-row">
+    <label for="toggleReducedMotion">🎬 Reduce Motion</label>
+    <label class="a11y-switch">
+      <input type="checkbox" id="toggleReducedMotion"
+        onchange="applyReducedMotion(this.checked)"
+        aria-label="Toggle reduced motion mode" />
+      <span class="a11y-slider"></span>
+    </label>
+  </div>
+
+  <div class="a11y-toggle-row">
+    <label for="toggleVoiceOutput">🔊 Voice Output</label>
+    <label class="a11y-switch">
+      <input type="checkbox" id="toggleVoiceOutput"
+        onchange="STATE.voiceOutput = this.checked; announce(this.checked ? 'Voice output enabled' : 'Voice output disabled')"
+        aria-label="Toggle voice output for AI responses" />
+      <span class="a11y-slider"></span>
+    </label>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
