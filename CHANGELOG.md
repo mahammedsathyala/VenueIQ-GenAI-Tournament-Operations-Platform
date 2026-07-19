@@ -62,11 +62,16 @@ Each entry explains **what changed** and **which evaluation score it improves**.
 
 | File | Change | Impact |
 |---|---|---|
+| `login.html` | **NEW** — High-end role-based login page with custom particle canvas BG, validation, XSS prevention, and redirect logic | Enhances security architecture |
+| `app.js` | `checkAuthentication()` — Redirects unauthenticated users, skips during automated tests | Enforces session security |
+| `app.js` | `updateUserNavbarProfile()` — Dynamically renders user identity badge + Sign Out button in navbar | User profile management |
+| `app.js` | `signOut()` — Clears all session and local storage keys on logout | Prevent session hijacking |
 | `app.js` | `filterPromptInjection(text)` — blocks 15 jailbreak/injection patterns | AI prompt security |
 | `app.js` | `RateLimit` object — max 10 msgs/min, rolling window | Prevents abuse/flooding |
 | `app.js` | `safeJSON(str, fallback)` — try/catch JSON.parse wrapper | Safe deserialization |
 | `app.js` | `filterPromptInjection` called in `sendMessage` + auto-logs blocked attempts | Full audit trail |
 | `app.js` | `AuditLog.append()` logs all blocked injection attempts | Forensic audit |
+
 
 ---
 

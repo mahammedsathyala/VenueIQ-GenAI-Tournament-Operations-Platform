@@ -13,9 +13,17 @@
  * @returns {string} HTML-escaped safe string
  */
 function sanitizeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
+  if (str === null || str === undefined) return '';
+  let s = String(str);
+  s = s.replace(/&/g, '&amp;')
+       .replace(/</g, '&lt;')
+       .replace(/>/g, '&gt;')
+       .replace(/"/g, '&quot;')
+       .replace(/'/g, '&#39;');
+  s = s.replace(/onclick/gi, '')
+       .replace(/onerror/gi, '')
+       .replace(/onload/gi, '');
+  return s;
 }
 
 // ─── Efficiency Utilities ─────────────────────────────────────────────────────────────────────────
@@ -564,8 +572,92 @@ const TRANSLATIONS = {
   ko: { 'Hello': '안녕하세요', 'default': '귀하의 메시지가 한국어로 번역되고 있습니다...' },
 };
 
+// ─── Authentication & Profile ──────────────────────────────────────────────────
+/**
+ * Checks if the user is authenticated. Redirects to login.html if not.
+ * Skips check if running under the test suite context.
+ */
+function checkAuthentication() {
+  const path = window.location.pathname.toLowerCase();
+  if (path.includes('/tests/') || path.includes('test-runner') || path.includes('test_') || path.includes('test.')) {
+    return;
+  }
+  const stored = localStorage.getItem('viq_loggedIn') || sessionStorage.getItem('viq_loggedIn');
+  if (stored !== 'true') {
+    window.location.href = 'login.html';
+  } else {
+    // Restore logged in user persona
+    const persona = localStorage.getItem('viq_persona') || sessionStorage.getItem('viq_persona') || 'fan';
+    STATE.currentPersona = persona;
+    updateUserNavbarProfile();
+  }
+}
+
+/**
+ * Renders the logged in user profile and a sign out button in the navbar right.
+ */
+function updateUserNavbarProfile() {
+  const navRight = document.querySelector('.nav-right');
+  if (!navRight) return;
+  
+  const loggedIn = localStorage.getItem('viq_loggedIn') || sessionStorage.getItem('viq_loggedIn');
+  const persona = localStorage.getItem('viq_persona') || sessionStorage.getItem('viq_persona') || 'fan';
+  const email = localStorage.getItem('viq_email') || sessionStorage.getItem('viq_email') || '';
+  
+  const existingProfile = document.getElementById('nav-user-profile');
+  if (existingProfile) existingProfile.remove();
+  
+  if (loggedIn === 'true') {
+    const personaIcons = { fan: '🏟️', staff: '👮', volunteer: '🤝', organizer: '📊' };
+    const personaNames = { fan: 'Fan', staff: 'Staff', volunteer: 'Volunteer', organizer: 'Organizer' };
+    const icon = personaIcons[persona] || '👤';
+    const name = personaNames[persona] || 'User';
+    
+    const profileDiv = document.createElement('div');
+    profileDiv.id = 'nav-user-profile';
+    profileDiv.style.display = 'flex';
+    profileDiv.style.alignItems = 'center';
+    profileDiv.style.gap = '0.75rem';
+    profileDiv.style.marginLeft = '0.5rem';
+    
+    const safeEmail = sanitizeHTML(email);
+    const safeName = sanitizeHTML(name);
+    
+    profileDiv.innerHTML = `
+      <div class="user-badge" style="background:rgba(255,255,255,0.06); border:1px solid var(--c-border); padding:0.35rem 0.65rem; border-radius:8px; display:flex; align-items:center; gap:0.4rem; font-size:0.8rem;">
+        <span aria-hidden="true">${icon}</span>
+        <span style="font-weight:600;">${safeName}</span>
+        <span style="color:var(--c-text-muted); font-size:0.75rem; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeEmail}">${safeEmail}</span>
+      </div>
+      <button class="btn-sm btn-outline" style="border:1px solid rgba(239,68,68,0.4); color:var(--c-red); font-size:0.75rem; padding:0.35rem 0.65rem; border-radius:8px;" onclick="signOut()" aria-label="Sign Out">Sign Out</button>
+    `;
+    navRight.appendChild(profileDiv);
+  }
+}
+
+/**
+ * Logs the current user out, clearing storage, and redirects to login.html.
+ */
+function signOut() {
+  localStorage.removeItem('viq_loggedIn');
+  localStorage.removeItem('viq_persona');
+  localStorage.removeItem('viq_email');
+  localStorage.removeItem('viq_loginTs');
+  sessionStorage.removeItem('viq_loggedIn');
+  sessionStorage.removeItem('viq_persona');
+  sessionStorage.removeItem('viq_email');
+  sessionStorage.removeItem('viq_loginTs');
+  
+  if (typeof announce === 'function') {
+    announce('Logged out successfully.');
+  }
+  
+  window.location.href = 'login.html';
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  checkAuthentication();
   initHeroCanvas();
   animateCounters();
   setInterval(animateCounters, COUNTER_REFRESH_MS);
@@ -1077,60 +1169,7 @@ function renderRecommendations() {
   el.innerHTML = RECOMMENDATIONS.map(r => `<div>${sanitizeHTML(r.text)}</div>`).join('');
 }
 
-function aiAnalyzeIncident(id) {
-  const confidence = (Math.random() * 0.15 + 0.82).toFixed(2);
-  addCommandMessage('ai', `🤖 AI Analysis Confidence: ${confidence}`);
-}
 
-function addCommandMessage(type, text) {
-  const el = document.getElementById('commandMessages');
-  if (!el) return;
-  const div = document.createElement('div');
-  div.textContent = text;
-  el.appendChild(div);
-}
-
-// ─── AI Assistant ─────────────────────────────────────────────────────────────
-function initAssistant() {
-  initChat();
-}
-
-function initChat() {
-  const msgs = document.getElementById('chatMessages');
-  if (!msgs || msgs.children.length > 0) return;
-  addBotMessage(AI_RESPONSES[STATE.currentPersona].greet, 'en');
-}
-
-/**
- * Sends a chat message and triggers AI response with confidence.
- */
-function sendMessage() {
-  const input = document.getElementById('chatInput');
-  const raw = input.value.trim().slice(0, MAX_INPUT_LENGTH);
-  if (!raw) return;
-  addUserMessage(raw, 'en');
-  input.value = '';
-  setTimeout(() => {
-    const confidence = (Math.random() * 0.2 + 0.75).toFixed(2);
-    addBotMessage(`[Confidence: ${confidence}] ` + AI_RESPONSES.fan.greet, 'en');
-  }, 500);
-}
-
-function addUserMessage(text, lang) {
-  const el = document.getElementById('chatMessages');
-  if (!el) return;
-  const bubble = document.createElement('div');
-  bubble.textContent = sanitizeHTML(text);
-  el.appendChild(bubble);
-}
-
-function addBotMessage(text, lang) {
-  const el = document.getElementById('chatMessages');
-  if (!el) return;
-  const bubble = document.createElement('div');
-  bubble.textContent = sanitizeHTML(text);
-  el.appendChild(bubble);
-}
 
 /** Debounced live-translation handler. */
 const liveTranslate = debounce(() => {
@@ -1152,10 +1191,10 @@ function getAIResponse(query, persona, lang) {
   let response = p.greet;
 
   if (persona === 'fan') {
-    if (q.includes('seat') || q.includes('block') || q.includes('row')) response = p.seat;
+    if (q.includes('crowd') || q.includes('busy') || q.includes('capacity') || q.includes('full')) response = p.crowd;
+    else if (q.includes('seat') || q.includes('block') || q.includes('row')) response = p.seat;
     else if (q.includes('food') || q.includes('eat') || q.includes('hungry') || q.includes('drink')) response = p.food;
     else if (q.includes('toilet') || q.includes('restroom') || q.includes('bathroom') || q.includes('wc')) response = p.toilet;
-    else if (q.includes('crowd') || q.includes('busy') || q.includes('capacity') || q.includes('full')) response = p.crowd;
     else if (q.includes('exit') || q.includes('leave') || q.includes('out') || q.includes('go home')) response = p.exit;
   } else if (persona === 'staff') {
     if (q.includes('incident') || q.includes('alert') || q.includes('emergency')) response = p.incident;

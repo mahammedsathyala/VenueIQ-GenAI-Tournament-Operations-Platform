@@ -82,3 +82,16 @@ describe('Security — Prompt Injection Filtering', () => {
     expect(result.text).not.toContain('<script>');
   });
 });
+
+describe('Security — Authentication Utilities', () => {
+  it('checkAuthentication function is defined', () => {
+    expect(typeof checkAuthentication).toBe('function');
+  });
+  it('updateUserNavbarProfile function is defined', () => {
+    expect(typeof updateUserNavbarProfile).toBe('function');
+  });
+  it('signOut function is defined', () => {
+    expect(typeof signOut).toBe('function');
+  });
+});
+
