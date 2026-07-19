@@ -1234,12 +1234,21 @@ canvas { display: block; }
 .large-text p, .large-text li, .large-text label { line-height: 1.8; }
 
 /* Reduced motion — disable all animations/transitions */
-.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after,
-@media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+.reduce-motion *, 
+.reduce-motion *::before, 
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* ════════════════════════════ ACCESSIBILITY PANEL ═══════════════════════════ */
