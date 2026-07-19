@@ -138,6 +138,8 @@ cd VenueIQ-GenAI-Tournament-Operations-Platform
 # Serve (requires Python 3)
 python -m http.server 8765
 
+# or
+npx serve . -p 8765
 # Open app
 http://localhost:8765
 
@@ -253,16 +255,3 @@ VenueIQ targets **WCAG 2.1 AA** compliance.
 - Predictive incident ML model trained on historical data
 
 ---
-
-## 📈 Score Improvements
-
-| Category | Before | After | Current |
-|---|---|---|---|
-| Testing | 13 | ~95 | 99 |
-| Accessibility | 30 | ~92 | 98 |
-| Efficiency | 40 | ~90 | 100 |
-| Security | 70 | ~96 | 83→99 (hardened) |
-| Code Quality | 75 | ~95 | 86→98 (JSDoc + error handling) |
-| Problem Alignment | 54 | ~92 | 88→97 |
-
-See [CHANGELOG.md](CHANGELOG.md) for the full breakdown.
