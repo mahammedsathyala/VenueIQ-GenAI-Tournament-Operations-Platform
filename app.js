@@ -1216,6 +1216,23 @@ function getAIResponse(query, persona, lang) {
 
 // ─── AI Assistant ────────────────────────────────────────────────────────────────────────
 /**
+ * Initialises the AI Assistant section, rendering chips and starting the chat.
+ */
+function initAssistant() {
+  renderPromptChips();
+  initChat();
+}
+
+/**
+ * Initialises the chat stream by greeting the user.
+ */
+function initChat() {
+  const msgs = document.getElementById('chatMessages');
+  if (!msgs || msgs.children.length > 0) return;
+  addBotMessage(AI_RESPONSES[STATE.currentPersona].greet, 'en');
+}
+
+/**
  * Sends a chat message and triggers an AI response.
  * Sanitizes user input and enforces MAX_INPUT_LENGTH.
  */
