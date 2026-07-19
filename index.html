@@ -11,6 +11,11 @@
   <meta property="og:type" content="website" />
   <title>VenueIQ — GenAI Tournament Operations Platform</title>
   <meta name="description" content="VenueIQ: AI-powered venue operations platform for tournaments — crowd management, smart navigation, real-time decision support, and multi-language assistance." />
+  <!-- Security Headers -->
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="Referrer-Policy" content="no-referrer" />
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -64,6 +69,7 @@
       <li role="none"><a href="#decisions" class="nav-link" role="menuitem" id="nav-decisions" onclick="showSection('decisions', this)">Decision Hub</a></li>
       <li role="none"><a href="#assistant" class="nav-link" role="menuitem" id="nav-assistant" onclick="showSection('assistant', this)">AI Assistant</a></li>
       <li role="none"><a href="#staff" class="nav-link" role="menuitem" id="nav-staff" onclick="showSection('staff', this)">Staff Ops</a></li>
+      <li role="none"><a href="#audit" class="nav-link" role="menuitem" id="nav-audit" onclick="showSection('audit', this)">📝 AI Audit</a></li>
     </ul>
     <div class="nav-right">
       <div class="live-indicator" aria-label="System is live" role="status"><span class="pulse" aria-hidden="true"></span> LIVE</div>
@@ -516,25 +522,40 @@
       <div class="persona-selector">
         <div class="panel-title">Select Mode</div>
         <div class="persona-cards">
-          <div class="persona-card active" id="persona-fan" onclick="selectPersona('fan', this)">
+          <div class="persona-card active" id="persona-fan" onclick="selectPersona('fan')">
             <div class="persona-icon">🎟️</div>
             <div class="persona-name">Fan Mode</div>
             <div class="persona-desc">Navigate, find seats, food, events</div>
           </div>
-          <div class="persona-card" id="persona-staff" onclick="selectPersona('staff', this)">
+          <div class="persona-card" id="persona-staff" onclick="selectPersona('staff')">
             <div class="persona-icon">👷</div>
             <div class="persona-name">Staff Mode</div>
             <div class="persona-desc">Operational queries, incident reports</div>
           </div>
-          <div class="persona-card" id="persona-volunteer" onclick="selectPersona('volunteer', this)">
+          <div class="persona-card" id="persona-volunteer" onclick="selectPersona('volunteer')">
             <div class="persona-icon">🤝</div>
             <div class="persona-name">Volunteer Mode</div>
             <div class="persona-desc">Zone assignments, protocols, guidance</div>
           </div>
-          <div class="persona-card" id="persona-organizer" onclick="selectPersona('organizer', this)">
+          <div class="persona-card" id="persona-organizer" onclick="selectPersona('organizer')">
             <div class="persona-icon">📋</div>
             <div class="persona-name">Organizer Mode</div>
             <div class="persona-desc">Analytics, decisions, staff coordination</div>
+          </div>
+          <div class="persona-card" id="persona-security" onclick="selectPersona('security')">
+            <div class="persona-icon">👮</div>
+            <div class="persona-name">Security Mode</div>
+            <div class="persona-desc">Perimeter, threat assessment, deployment</div>
+          </div>
+          <div class="persona-card" id="persona-medical" onclick="selectPersona('medical')">
+            <div class="persona-icon">🚑</div>
+            <div class="persona-name">Medical Mode</div>
+            <div class="persona-desc">Triage, dispatch, health monitoring</div>
+          </div>
+          <div class="persona-card" id="persona-vendor" onclick="selectPersona('vendor')">
+            <div class="persona-icon">🛍️</div>
+            <div class="persona-name">Vendor Mode</div>
+            <div class="persona-desc">Inventory, pricing, queue analytics</div>
           </div>
         </div>
 
@@ -575,6 +596,24 @@
           <div class="chat-controls">
             <button class="chat-ctrl-btn" id="clear-chat-btn" onclick="clearChat()" title="Clear chat" aria-label="Clear chat history">🗑️</button>
             <button class="chat-ctrl-btn" id="export-chat-btn" onclick="exportChat()" title="Export chat" aria-label="Export chat transcript">📤</button>
+          </div>
+        </div>
+
+        <!-- AI Decision Pipeline Visualization -->
+        <div class="ai-pipeline" id="aiPipeline" aria-label="AI decision pipeline stages" role="status">
+          <div class="pipeline-label">⚡ AI Pipeline</div>
+          <div class="pipeline-steps">
+            <div class="pipeline-step" data-stage="intent">Intent</div>
+            <div class="pipeline-arrow">›</div>
+            <div class="pipeline-step" data-stage="role">Role</div>
+            <div class="pipeline-arrow">›</div>
+            <div class="pipeline-step" data-stage="context">Context</div>
+            <div class="pipeline-arrow">›</div>
+            <div class="pipeline-step" data-stage="analysis">Analysis</div>
+            <div class="pipeline-arrow">›</div>
+            <div class="pipeline-step" data-stage="decision">Decision</div>
+            <div class="pipeline-arrow">›</div>
+            <div class="pipeline-step" data-stage="audit">Audit Log</div>
           </div>
         </div>
 
@@ -702,6 +741,73 @@
       </div>
     </div>
   </section>
+
+</main>
+
+<!-- AI AUDIT LOG SECTION -->
+<section class="section" id="section-audit" style="display:none">
+  <div class="section-header">
+    <div>
+      <h2 class="section-title">📝 AI Decision Audit Log</h2>
+      <p class="section-sub">Tamper-evident record of every AI recommendation · Intent · Decision · Confidence · Risk · Outcome</p>
+    </div>
+    <div class="header-actions">
+      <label for="auditRoleFilter" class="sr-only">Filter by role</label>
+      <select id="auditRoleFilter" aria-label="Filter audit log by role" style="background:var(--c-surface);border:1px solid var(--c-border);color:var(--c-text);border-radius:8px;padding:.4rem .8rem;font-size:.85rem">
+        <option value="all">📋 All Roles</option>
+        <option value="fan">🎟️ Fan</option>
+        <option value="staff">👷 Staff</option>
+        <option value="volunteer">🤝 Volunteer</option>
+        <option value="organizer">📋 Organizer</option>
+        <option value="security">👮 Security</option>
+        <option value="medical">🚑 Medical</option>
+        <option value="vendor">🛍️ Vendor</option>
+        <option value="system">⚙️ System</option>
+      </select>
+      <button class="btn-sm btn-outline" id="audit-refresh-btn" onclick="renderAuditPanel()" aria-label="Refresh audit log">⟳ Refresh</button>
+      <button class="btn-sm btn-purple" id="audit-export-btn" onclick="AuditLog.export()" aria-label="Export audit log as CSV">📥 Export CSV</button>
+      <button class="btn-sm btn-outline" id="audit-clear-btn" onclick="AuditLog.clear()" aria-label="Clear audit log">🗑️ Clear</button>
+    </div>
+  </div>
+
+  <div class="audit-stats-row">
+    <div class="audit-stat-card">
+      <div class="audit-stat-num" id="auditCountBadge">0</div>
+      <div class="audit-stat-label">Total Decisions</div>
+    </div>
+    <div class="audit-stat-card">
+      <div class="audit-stat-num" style="color:#ef4444" id="auditCriticalCount">0</div>
+      <div class="audit-stat-label">Critical Risk</div>
+    </div>
+    <div class="audit-stat-card">
+      <div class="audit-stat-num" style="color:#22c55e">94%</div>
+      <div class="audit-stat-label">Avg Confidence</div>
+    </div>
+    <div class="audit-stat-card">
+      <div class="audit-stat-num" style="color:#7c3aed">7</div>
+      <div class="audit-stat-label">Active Roles</div>
+    </div>
+  </div>
+
+  <div class="audit-table-wrap">
+    <table class="audit-table" role="table" aria-label="AI decision audit log">
+      <thead>
+        <tr>
+          <th scope="col">Time</th>
+          <th scope="col">Role</th>
+          <th scope="col">Intent</th>
+          <th scope="col">Decision</th>
+          <th scope="col">Risk</th>
+          <th scope="col">Confidence</th>
+          <th scope="col">Outcome</th>
+        </tr>
+      </thead>
+      <tbody id="auditLogBody" aria-live="polite" aria-label="Audit log entries">
+        <tr><td colspan="7" style="text-align:center;color:var(--c-text-muted);padding:2rem">No audit entries yet. Interact with the AI Assistant to generate entries.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 </main>
 

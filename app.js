@@ -68,6 +68,20 @@ const AI_CONFIDENCE_MIN            = 0.82; // minimum confidence for AI decision
 const AI_CONFIDENCE_RANGE          = 0.15; // random jitter range above minimum
 const AUDIT_LOG_MAX_ENTRIES        = 200;  // maximum audit log size before trimming
 
+// ─── Role & Severity Constants ──────────────────────────────────────────────
+/** Maps persona keys to display icons. */
+const ROLE_ICONS  = { fan:'🎟️', staff:'👷', volunteer:'🤝', organizer:'📋', security:'👮', medical:'🚑', vendor:'🛍️' };
+/** Maps persona keys to display names. */
+const ROLE_NAMES  = { fan:'Fan Assistant', staff:'Operations Commander', volunteer:'Volunteer Coordinator', organizer:'Event Director', security:'Security Commander', medical:'Medical Officer', vendor:'Vendor Manager' };
+/** Risk level colour palette for decision cards. */
+const RISK_COLORS = { high:'#ef4444', medium:'#f97316', low:'#22c55e' };
+/** Ordered labels for the AI decision pipeline visualization. */
+const PIPELINE_STAGES = ['Intent Detection','Role Detection','Context Retrieval','Operational Analysis','Decision Planning','Recommendation','Audit Log'];
+/** Valid navigation modes — used for allowlist validation. */
+const VALID_NAV_MODES = new Set(['walking','accessible','fastest','scenic']);
+/** Valid incident severity filters — used for allowlist validation. */
+const VALID_SEVERITIES = new Set(['all','critical','medium','low']);
+
 // ─── Efficiency: throttle() ──────────────────────────────────────────────────
 /**
  * Returns a throttled version of `fn` that fires at most once per `limit` ms.
@@ -290,38 +304,283 @@ function applyReducedMotion(on) {
   announce(on ? 'Reduced motion enabled' : 'Reduced motion disabled');
 }
 
+// ─── AI Decision Engine: detectIntent() ──────────────────────────────────────
+/**
+ * Detects the operational intent from a user query using keyword matching.
+ * Returns one of 15 intent keys or 'general' as the fallback.
+ * @param {string} query - Raw user input
+ * @returns {string} Intent key
+ */
+function detectIntent(query) {
+  const q = (query || '').toLowerCase();
+  const INTENT_PATTERNS = [
+    { key: 'seat',          patterns: ['seat', 'block', 'row', 'section', 'where.*sit', 'my seat'] },
+    { key: 'food',          patterns: ['food', 'eat', 'hungry', 'drink', 'restaurant', 'snack', 'beverage', 'concession', 'coffee'] },
+    { key: 'toilet',        patterns: ['toilet', 'restroom', 'bathroom', 'wc', 'loo'] },
+    { key: 'exit',          patterns: ['exit', 'leave', 'go home', 'depart', 'way out'] },
+    { key: 'crowd',         patterns: ['crowd', 'busy', 'capacity', 'full', 'density', 'packed'] },
+    { key: 'incident',      patterns: ['incident', 'emergency', 'alert', 'danger', 'unsafe', 'fight', 'fire'] },
+    { key: 'patrol',        patterns: ['patrol', 'coverage', 'redeploy', 'perimeter'] },
+    { key: 'medical',       patterns: ['medical', 'doctor', 'ambulance', 'injured', 'hurt', 'sick', 'first aid', 'unwell'] },
+    { key: 'transport',     patterns: ['transport', 'bus', 'taxi', 'train', 'shuttle', 'getting home', 'parking'] },
+    { key: 'weather',       patterns: ['weather', 'heat', 'rain', 'temperature', 'hot', 'humidity', 'uv'] },
+    { key: 'accessibility', patterns: ['wheelchair', 'disability', 'accessible', 'mobility', 'ramp', 'lift', 'elevator'] },
+    { key: 'vendor',        patterns: ['vendor', 'merchandise', 'souvenir', 'shop', 'store', 'buy', 'merch'] },
+    { key: 'summary',       patterns: ['summary', 'revenue', 'report', 'sales', 'analytics', 'overview'] },
+    { key: 'prediction',    patterns: ['predict', 'forecast', 'next', 'future', 'expect', 'surge'] },
+    { key: 'volunteer',     patterns: ['volunteer', 'assignment', 'shift', 'break', 'schedule', 'duty', 'task'] },
+  ];
+  for (const { key, patterns } of INTENT_PATTERNS) {
+    if (patterns.some(p => q.includes(p))) return key;
+  }
+  return 'general';
+}
+
 // ─── AI Decision Engine: buildAIDecision() ───────────────────────────────────
 /**
- * Constructs a structured AI decision object for a given query/persona.
- * @param {string} persona - 'fan' | 'staff' | 'volunteer' | 'organizer'
- * @param {string} intent  - Detected intent key (e.g., 'seat', 'crowd')
+ * Constructs a fully-structured AI operational decision object.
+ * Includes all 11 fields required for Explainable AI output.
+ * @param {string} persona - One of 7 role keys (fan|staff|volunteer|organizer|security|medical|vendor)
+ * @param {string} intent  - Detected intent key from detectIntent()
  * @param {string} query   - Raw user query text
- * @returns {{ intent, role, context, decision, reason, confidence, alternative, expectedOutcome }}
+ * @returns {AIDecision} Structured decision object
  */
 function buildAIDecision(persona, intent, query) {
-  const intentMap = {
-    seat:     { decision:'Navigate to Block D, Row 12, Seat 7', reason:'Shortest path via Concourse B is currently least congested', alternative:'Route via Gate 6 (2 min longer, less crowded)', expectedOutcome:'Reach seat in under 3 minutes' },
-    food:     { decision:'Proceed to Food Court C (45m away)', reason:'Food Court C has 4-min wait vs 12-min at Court A', alternative:'Snack Bar B2 — zero queue, limited options', expectedOutcome:'Served within 6 minutes' },
-    toilet:   { decision:'Use Restroom at Concourse B, Stall 3', reason:'Nearest accessible facility with current low occupancy', alternative:'Level 2 East Wing restroom (60m, low wait)', expectedOutcome:'2-minute round trip' },
-    crowd:    { decision:'Stay in current zone — avoid Zone F', reason:'Zone F at 98% capacity; risk of bottleneck at Gate 7', alternative:'Relocate to Zone B (82% capacity, comfortable)', expectedOutcome:'Reduced crowding risk' },
-    exit:     { decision:'Use Gate 3 (East) in 10 minutes', reason:'Post-match crowd disperses in 8-10 mins; Gate 3 lowest traffic', alternative:'Gate 6 North — now, 8-min walk, minimal queue', expectedOutcome:'Exit in under 12 minutes total' },
-    incident: { decision:'Deploy Protocol Alpha-3 to Zone F', reason:'Density at 98% with increasing ingress rate (340/min)', alternative:'Protocol Bravo-1 if crowd does not disperse in 5 min', expectedOutcome:'Density reduced to ~78% within 8 minutes' },
-    patrol:   { decision:'Redeploy 2 officers from Zone B to Zone F perimeter', reason:'Zone B at 72% — 8-min coverage gap detected near Exit 7', alternative:'Request external security support from Gate control', expectedOutcome:'Full perimeter coverage restored in 4 minutes' },
-    summary:  { decision:'Activate halftime crowd management plan', reason:'Concession sales up 12%; peak footfall expected at 14:30', alternative:'Staggered gate management if surge exceeds projection', expectedOutcome:'Revenue target exceeded; incident-free event' },
+  const INTENT_MAP = {
+    seat: {
+      situationAnalysis: 'Fan navigating to assigned seat from Gate 3. Concourse B is 42% occupied vs Gate 6 at 78%.',
+      decision: 'Navigate to Block D, Row 12, Seat 7 via Concourse B',
+      reason: 'Concourse B offers the shortest route at current 42% occupancy vs 78% at Gate 6',
+      alternative: 'Route via Gate 6 — 2 min longer, less crowded today',
+      expectedOutcome: 'Fan reaches seat in under 3 minutes',
+      riskLevel: 'low', priority: 'medium',
+      dataUsed: 'Real-time zone occupancy, indoor positioning, concourse flow rates',
+    },
+    food: {
+      situationAnalysis: 'Fan seeking food. Food Court A has 12+ min queue. Food Court C at 34% capacity.',
+      decision: 'Proceed to Food Court C — 45m from current position',
+      reason: 'Food Court C: 4-min wait vs 12-min at Court A; full menu available',
+      alternative: 'Snack Bar B2 — zero queue, limited options',
+      expectedOutcome: 'Fan served within 6 minutes total',
+      riskLevel: 'low', priority: 'low',
+      dataUsed: 'Queue analytics, foot traffic sensors, menu availability system',
+    },
+    toilet: {
+      situationAnalysis: 'Fan seeking restroom. Nearest facility at Concourse A at 80% occupancy.',
+      decision: 'Use accessible Restroom at Concourse B, Stall 3 (35% occupancy)',
+      reason: 'Nearest accessible facility with current low occupancy — shorter wait',
+      alternative: 'Level 2 East Wing restroom — 60m walk, currently low wait',
+      expectedOutcome: '2-minute round trip from current position',
+      riskLevel: 'low', priority: 'low',
+      dataUsed: 'Restroom occupancy sensors, indoor wayfinding, accessibility data',
+    },
+    crowd: {
+      situationAnalysis: 'Zone F density at 98% capacity. Ingress rate 340 fans/min. Safety threshold breach imminent in ~6 min.',
+      decision: 'Close Gate 7 entry — redirect 2,000 fans to Gates 4 and 6 immediately',
+      reason: 'Zone F at 98% exceeds the 90% safety threshold. Bottleneck risk at Gate 7 within 6 minutes.',
+      alternative: 'Relocate fans to Zone B (82% capacity, comfortable)',
+      expectedOutcome: 'Zone F density reduced to ~78% within 8 minutes',
+      riskLevel: 'high', priority: 'critical',
+      dataUsed: 'Zone density sensors, ingress/egress counters, crowd flow prediction model',
+    },
+    exit: {
+      situationAnalysis: 'Post-match dispersal. 15,000+ fans departing. Gate queues building at all exits.',
+      decision: 'Use Gate 3 East — wait 10 minutes for optimal dispersal window',
+      reason: 'AI predicts Gate 3 lowest traffic in 10 min. Immediate exit has 25-min queue.',
+      alternative: 'Gate 6 North — depart now, 8-min walk, minimal current queue',
+      expectedOutcome: 'Exit venue in under 12 minutes total',
+      riskLevel: 'medium', priority: 'high',
+      dataUsed: 'Historical exit flow patterns, current gate queue lengths, transport schedules',
+    },
+    incident: {
+      situationAnalysis: 'Critical safety incident. Zone F density 98%. Ingress rate 340/min — crush threshold in 6 minutes.',
+      decision: 'Activate Protocol Alpha-3 — deploy 4 security units to Zone F perimeter',
+      reason: 'Density 98%, ingress 340/min — crowd crush threshold breach predicted in 6 minutes.',
+      alternative: 'Escalate to Protocol Bravo-1 if crowd does not disperse within 5 minutes',
+      expectedOutcome: 'Zone F density reduced to ~78% within 8 minutes; incident contained',
+      riskLevel: 'high', priority: 'critical',
+      dataUsed: 'Zone sensors, CCTV analytics, historical incident patterns, crowd velocity model',
+    },
+    patrol: {
+      situationAnalysis: '8-minute security gap at Exit 7. Zone B under-utilized at 72% coverage.',
+      decision: 'Redeploy 2 officers from Zone B to Zone F perimeter — execute immediately',
+      reason: 'Zone B safe at 72%. Active 8-min gap near Exit 7 is a security vulnerability.',
+      alternative: 'Request external security support from Gate control if redeployment not feasible',
+      expectedOutcome: 'Full perimeter coverage restored within 4 minutes',
+      riskLevel: 'high', priority: 'high',
+      dataUsed: 'Officer GPS positions, CCTV coverage map, zone risk scores',
+    },
+    medical: {
+      situationAnalysis: 'Fan unwell at Section D12. Heat index 38°C. Medical Unit 3 is nearest at 2-min travel time.',
+      decision: 'Dispatch Medical Unit 3 to Section D12 — alert cooling station activation',
+      reason: 'Fan requires immediate assessment. Heat exhaustion symptoms. Response window: 3 minutes.',
+      alternative: 'On-site first aid volunteer if medical team delayed beyond 3 minutes',
+      expectedOutcome: 'First responder arrives within 2 minutes; fan stabilized on-site',
+      riskLevel: 'high', priority: 'critical',
+      dataUsed: 'Fan alert system, medical team GPS tracker, venue heat index sensors',
+    },
+    transport: {
+      situationAnalysis: 'Match ends in 35 minutes. 15,000+ fans expected at transport hub simultaneously.',
+      decision: 'Pre-deploy 8 shuttle buses to Zone 3 hub at 16:15 (15 minutes early)',
+      reason: 'Historical data: 34-min post-match surge. Pre-deployment reduces average fan wait by 18 min.',
+      alternative: 'Coordinate with city transit for emergency frequency increase on Routes 4 and 7',
+      expectedOutcome: 'Average fan departure time reduced from 52 to 34 minutes',
+      riskLevel: 'medium', priority: 'high',
+      dataUsed: 'Historical transport patterns, ticket scan data, bus fleet availability, traffic model',
+    },
+    weather: {
+      situationAnalysis: 'Heat index 38°C, UV index 8 (high). 3,400 fans in exposed outdoor zones A and E.',
+      decision: 'Deploy 6 additional hydration stations in Zones A, C, and F immediately',
+      reason: 'Heat exhaustion risk high. Medical incidents are up 40% in equivalent conditions historically.',
+      alternative: 'Broadcast advisory and open shaded overflow areas in Concourse D',
+      expectedOutcome: 'Heat-related medical incidents reduced by ~60% over next 2 hours',
+      riskLevel: 'medium', priority: 'high',
+      dataUsed: 'Live weather data, medical incident correlation database, zone exposure mapping',
+    },
+    accessibility: {
+      situationAnalysis: 'Accessibility request at East Entrance. Standard routes congested. Lift B operational.',
+      decision: 'Route via Level 1 accessible corridor — wheelchair-priority lane now active',
+      reason: 'Main accessible route clear. All alternative routes have step hazards or excessive inclines.',
+      alternative: 'Volunteer escort via VIP accessible lift if main corridor becomes blocked',
+      expectedOutcome: 'User reaches destination with full accessibility support within 4 minutes',
+      riskLevel: 'low', priority: 'high',
+      dataUsed: 'Accessibility route map, elevator status system, volunteer position tracker',
+    },
+    vendor: {
+      situationAnalysis: 'Food Court C at 34% capacity. Adjacent Zone A has high footfall and 12-min queue at Court A.',
+      decision: 'Activate 15% dynamic pricing discount at Food Court C for 30 minutes',
+      reason: 'Net revenue model projects +12% with discount. Diverts Zone A congestion to Food Court C.',
+      alternative: 'Deploy mobile vendor cart to Zone A perimeter as supplementary option',
+      expectedOutcome: 'Food Court C utilization increases to 80%+ within 15 minutes',
+      riskLevel: 'low', priority: 'medium',
+      dataUsed: 'POS analytics, zone footfall counters, pricing elasticity model',
+    },
+    summary: {
+      situationAnalysis: 'Halftime window (14:15–14:35). Peak concession and crowd movement expected.',
+      decision: 'Activate halftime crowd management plan — stagger concession zone access',
+      reason: 'Concession sales up 12%; footfall surge expected in 15 minutes at Food Courts A and D.',
+      alternative: 'Staggered gate management if actual surge exceeds projection by >20%',
+      expectedOutcome: 'Revenue target exceeded; incident-free halftime transition',
+      riskLevel: 'medium', priority: 'high',
+      dataUsed: 'POS sales data, concession queue analytics, crowd flow prediction model',
+    },
+    prediction: {
+      situationAnalysis: 'AI 2-hour forecast window active. Match end at 16:30 — three surge events predicted.',
+      decision: 'Pre-position security and transport resources at 16:15 — 15 min ahead of match end',
+      reason: 'ML model + historical data predicts 15,000 departure surge at match end (16:30).',
+      alternative: 'Manual reactive deployment based on real-time monitoring at 16:00',
+      expectedOutcome: 'Proactive deployment reduces incident response time by 12 minutes',
+      riskLevel: 'medium', priority: 'high',
+      dataUsed: 'Historical event data, ML crowd prediction model, weather forecast, transport schedule',
+    },
+    volunteer: {
+      situationAnalysis: 'Volunteer coverage gap at Section D info desk. Zone is unmanned for 8 minutes.',
+      decision: 'Assign Volunteer #V2847 to Section D info desk — ETA 2 minutes',
+      reason: 'V2847 completing Zone A task in 2 min — nearest available volunteer.',
+      alternative: 'Temporary reassignment of Zone B volunteer (adds 5-min delay)',
+      expectedOutcome: 'Zero coverage gap — info desk fully staffed within 2 minutes',
+      riskLevel: 'low', priority: 'medium',
+      dataUsed: 'Volunteer check-in data, task completion status, zone coverage map',
+    },
+    general: {
+      situationAnalysis: 'General venue operations query. All primary systems operational. 2 active incidents managed.',
+      decision: 'All systems nominal — continue standard monitoring protocols',
+      reason: 'Venue status within safe operational parameters. No immediate escalation required.',
+      alternative: 'Escalate to supervisor if any metric breaches alert threshold within 10 minutes',
+      expectedOutcome: 'Continuous monitoring and proactive AI response maintained',
+      riskLevel: 'low', priority: 'low',
+      dataUsed: 'System health monitors, incident database, zone sensor array, AI model status',
+    },
   };
-  const roleMap = { fan:'Fan Assistant', staff:'Operations Commander', volunteer:'Volunteer Coordinator', organizer:'Event Director' };
-  const map = intentMap[intent] || intentMap.crowd;
+
+  const map = INTENT_MAP[intent] || INTENT_MAP.general;
   const confidence = parseFloat((Math.random() * AI_CONFIDENCE_RANGE + AI_CONFIDENCE_MIN).toFixed(2));
+
   return {
-    intent: intent || 'general_query',
-    role: roleMap[persona] || 'AI Assistant',
-    context: `FIFA World Cup 2026 venue — Query: "${sanitizeHTML(String(query || '').slice(0, 80))}"`,
-    decision: map.decision,
-    reason: map.reason,
+    intent:           intent || 'general',
+    userRole:         ROLE_NAMES[persona]  || 'AI Assistant',
+    roleIcon:         ROLE_ICONS[persona]  || '🤖',
+    situationAnalysis: map.situationAnalysis,
+    context:          `FIFA World Cup 2026 — ${sanitizeHTML(String(query || '').slice(0, 80))}`,
+    decision:         map.decision,
+    reason:           map.reason,
     confidence,
-    alternative: map.alternative,
-    expectedOutcome: map.expectedOutcome,
+    alternative:      map.alternative,
+    expectedOutcome:  map.expectedOutcome,
+    riskLevel:        map.riskLevel,
+    priority:         map.priority,
+    dataUsed:         map.dataUsed,
   };
+}
+
+// ─── AI Decision Engine: formatDecisionCard() ────────────────────────────────
+/**
+ * Renders a full Explainable AI decision card as an HTML string.
+ * Displays all 11 structured fields with colour-coded risk and confidence.
+ * @param {object} dec - AI decision object from buildAIDecision()
+ * @returns {string} Safe HTML string for insertion into chat bubble
+ */
+function formatDecisionCard(dec) {
+  const riskColor = RISK_COLORS[dec.riskLevel] || '#94a3b8';
+  const confPct   = Math.round((dec.confidence || 0) * 100);
+  const confColor = confPct >= 90 ? '#22c55e' : confPct >= 80 ? '#eab308' : '#f97316';
+  const priUp     = sanitizeHTML((dec.priority || 'low').toUpperCase());
+
+  return [
+    `<div class="ai-decision-card" role="article" aria-label="AI Decision">`,
+    `  <div class="dc-header">`,
+    `    <span class="dc-role-badge">${sanitizeHTML(dec.roleIcon)} ${sanitizeHTML(dec.userRole)}</span>`,
+    `    <span class="dc-intent-tag">${sanitizeHTML((dec.intent || '').replace(/_/g,' ').toUpperCase())}</span>`,
+    `  </div>`,
+    `  <div class="dc-situation">`,
+    `    <span class="dc-field-label">📊 Situation Analysis</span>`,
+    `    <p class="dc-situation-text">${sanitizeHTML(dec.situationAnalysis)}</p>`,
+    `  </div>`,
+    `  <div class="dc-decision-block">`,
+    `    <span class="dc-field-label">⚡ Decision</span>`,
+    `    <p class="dc-decision-text">${sanitizeHTML(dec.decision)}</p>`,
+    `  </div>`,
+    `  <div class="dc-meta-grid">`,
+    `    <div class="dc-meta-item"><span class="dc-meta-label">Reason</span><span class="dc-meta-val">${sanitizeHTML(dec.reason)}</span></div>`,
+    `    <div class="dc-meta-item"><span class="dc-meta-label">Confidence</span><span class="dc-meta-val" style="color:${confColor};font-weight:700">${confPct}%</span></div>`,
+    `    <div class="dc-meta-item"><span class="dc-meta-label">Risk</span><span class="dc-meta-val" style="color:${riskColor};font-weight:700;text-transform:uppercase">${sanitizeHTML(dec.riskLevel)}</span></div>`,
+    `    <div class="dc-meta-item"><span class="dc-meta-label">Priority</span><span class="dc-meta-val" style="font-weight:700">${priUp}</span></div>`,
+    `  </div>`,
+    `  <details class="dc-details"><summary class="dc-details-toggle">▸ Full Analysis</summary>`,
+    `    <div class="dc-details-body">`,
+    `      <div class="dc-detail-row"><span class="dc-field-label">🔄 Alternative</span><span>${sanitizeHTML(dec.alternative)}</span></div>`,
+    `      <div class="dc-detail-row"><span class="dc-field-label">🎯 Expected Outcome</span><span>${sanitizeHTML(dec.expectedOutcome)}</span></div>`,
+    `      <div class="dc-detail-row"><span class="dc-field-label">📂 Data Sources</span><span>${sanitizeHTML(dec.dataUsed)}</span></div>`,
+    `    </div>`,
+    `  </details>`,
+    `</div>`,
+  ].join('');
+}
+
+// ─── AI Decision Engine: runAIPipeline() ─────────────────────────────────────
+/**
+ * Orchestrates the full AI decision pipeline: Intent → Role → Context → Analysis → Decision → Audit.
+ * Animates the pipeline UI steps and returns a structured decision object.
+ * @param {string} query   - Raw user input
+ * @param {string} persona - Current user role key
+ * @returns {object} Structured AI decision from buildAIDecision()
+ */
+function runAIPipeline(query, persona) {
+  // Animate pipeline stages if the UI element exists
+  const stageEls = document.querySelectorAll('.pipeline-step');
+  if (stageEls.length) {
+    stageEls.forEach(el => el.classList.remove('active', 'done'));
+    let idx = 0;
+    const next = () => {
+      if (idx > 0 && stageEls[idx - 1]) stageEls[idx - 1].classList.replace('active', 'done');
+      if (idx < stageEls.length) { stageEls[idx].classList.add('active'); idx++; setTimeout(next, 180); }
+      else if (stageEls[stageEls.length - 1]) stageEls[stageEls.length - 1].classList.replace('active', 'done');
+    };
+    next();
+  }
+
+  const intent = detectIntent(query);
+  return buildAIDecision(persona, intent, query);
 }
 
 // ─── Real-Time Simulation ─────────────────────────────────────────────────────
@@ -538,7 +797,7 @@ const SUPPORTED_LANGS = [
   '🇿🇦 AF','🇧🇩 BN','🇵🇰 UR','🇨🇳 ZH-TW','🇧🇬 BG','🇨🇷 HR','🇸🇮 SL','🇸🇰 SK',
 ];
 
-// GenAI Response Simulation
+// ─── GenAI Persona Responses (7 roles) ───────────────────────────────────────
 const AI_RESPONSES = {
   fan: {
     greet: 'Welcome to the VenueIQ AI Assistant! 🎉 I can help you find your seat, locate facilities, check crowd levels, or provide real-time event information. What can I help you with today?',
@@ -564,6 +823,24 @@ const AI_RESPONSES = {
     summary: '📊 Today\'s event summary (as of 14:15):\n• **Total revenue (projected)**: ₹2.84 crore\n• **Concession sales**: ₹48.2L (above target by 12%)\n• **Incidents resolved**: 3 of 5\n• **Staff utilization**: 94%\n• **Fan satisfaction** (live sentiment): 4.6/5.0 ⭐',
     prediction: '🔮 AI predictions for next 2 hours:\n• **14:30**: Crowd surge at food courts (+34%)\n• **15:00**: Exit flow begins — Gate 3 will be busiest\n• **16:30**: Post-match — 15,000 departures in 20 mins\n• **Recommended**: Pre-deploy transport at 16:15',
   },
+  security: {
+    greet: '👮 Security Command activated. You have access to incident command, CCTV analytics, patrol management, and threat assessment tools. Current threat level: **AMBER — 1 critical zone**. What is your query?',
+    perimeter: '🛡️ Perimeter status:\n• **Zone F** — critical density, Gate 7 closed\n• **Gate 2** — normal flow restored\n• **North Perimeter** — 2 officers redeployed from Zone B\n\nAI recommends: Maintain Protocol Alpha-3 until Zone F drops below 85%.',
+    threat: '⚠️ Threat assessment — current window:\n• **Unauthorized access attempt** — VIP Zone (low confidence, monitoring)\n• **Crowd crush risk** — Zone F in ~6 min (high confidence: 94%)\n• **Recommended**: Activate public address system, close Gate 7.',
+    deploy: '🚔 AI optimized security deployment:\n• Zone F: +4 officers (critical)\n• Gate 7: Close entry (AI recommendation)\n• Zone B: -2 officers (safe to reduce)\n• Medical coordination: Alert Unit 3',
+  },
+  medical: {
+    greet: '🚑 Medical Command online. Monitoring all 32 medical personnel across 8 aid stations. Current status: **2 active medical responses in progress**. Heat index 38°C — elevated heat risk. How can I assist?',
+    triage: '🏥 Active medical situations:\n1. **Section D12** — Fan unwell, possible heat exhaustion (Unit 3 en route, 2 min)\n2. **Gate 5 area** — Minor injury, Volunteer First Aid responding\n\nAll other zones: Clear. Pre-positioning 2 units near Zone F (critical density).',
+    heatRisk: '🌡️ Heat risk assessment:\n• Current index: 38°C (dangerous for prolonged exposure)\n• UV index: 8 (high)\n• At-risk population: ~3,400 fans in exposed zones\n\nAI recommendations:\n• Deploy 6 hydration stations in Zones A, C, F\n• Activate shaded overflow in Concourse D\n• Alert fans via PA in 6 languages',
+    dispatch: '🚑 Dispatching medical resources:\n• Unit 3 → Section D12 (heat exhaustion, ETA: 2 min)\n• Unit 1 → Zone F standby (crowd risk, precautionary)\n• First Aid volunteer → Gate 5 area (minor injury)\n\nAll medical comms on Channel 4.',
+  },
+  vendor: {
+    greet: '🛍️ Vendor Management Console active. Monitoring 48 vendor points across 6 food courts, 12 merchandise stalls, and 8 beverage stations. Current total sales: **₹1.84 crore (+14% vs target)**. What do you need?',
+    optimize: '📈 AI vendor optimization recommendations:\n• **Food Court C** — 34% capacity; activate 15% dynamic discount\n• **Merchandise Stall 7** — restock jerseys (low inventory alert)\n• **Beverage Zone A** — double stock (heat advisory — high demand)\n\nExpected revenue uplift: +₹18L with these changes.',
+    stock: '📦 Current inventory alerts:\n• Jerseys (Stall 7): 12 units remaining — restock urgently\n• Water bottles (Zone A, C, F): Low — heat advisory active\n• Premium merchandise: 28% sold — on track\n\nAI-recommended reorder: Issue purchase order for 200 jerseys and 500 water units.',
+    queue: '⏱️ Queue analytics:\n• Food Court A: 12-min wait (overloaded)\n• Food Court C: 4-min wait (optimal capacity available)\n• Snack Bar B2: No queue\n\nAI routing suggestion: Broadcast Food Court C discount via digital signage.',
+  },
 };
 
 const QUICK_PROMPTS = {
@@ -571,6 +848,9 @@ const QUICK_PROMPTS = {
   staff:     ['Show active incidents', 'Check patrol coverage', 'Current crowd stats', 'Resource status'],
   volunteer: ['Show my assignment', 'Emergency protocols', 'Shift details', 'Where is lost & found?'],
   organizer: ['Event summary', 'AI predictions', 'Revenue report', 'Staff utilization'],
+  security:  ['Perimeter status', 'Threat assessment', 'Deploy security team', 'CCTV coverage gaps'],
+  medical:   ['Active medical situations', 'Heat risk assessment', 'Dispatch medical unit', 'Medical supply status'],
+  vendor:    ['Optimize vendor placement', 'Low stock alerts', 'Queue analytics', 'Revenue forecast'],
 };
 
 const TRANSLATIONS = {
@@ -591,7 +871,15 @@ const TRANSLATIONS = {
  * Sets the default persona to 'fan' and starts the real-time simulation.
  * Retained for backward compatibility with test suites.
  */
-function checkAuthentication() {
+/**
+ * Alias kept for backward compatibility. No login gate — app opens directly.
+ */
+function checkAuthentication() { initAppState(); }
+
+/**
+ * Initialises application state — sets default persona and starts real-time simulation.
+ */
+function initAppState() {
   STATE.currentPersona = 'fan';
   startRealTimeSimulation();
 }
@@ -622,7 +910,7 @@ function signOut() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  checkAuthentication();
+  initAppState();
   initHeroCanvas();
   animateCounters();
   setInterval(animateCounters, COUNTER_REFRESH_MS);
@@ -677,12 +965,14 @@ function showSection(name, linkEl) {
  */
 function initSection(name) {
   switch(name) {
-    case 'dashboard':   initDashboard(); break;
-    case 'crowd':       initCrowd(); break;
+    case 'dashboard':   initDashboard();  break;
+    case 'crowd':       initCrowd();      break;
     case 'navigation':  initNavigation(); break;
-    case 'decisions':   initDecisions(); break;
-    case 'assistant':   initAssistant(); break;
-    case 'staff':       initStaff(); break;
+    case 'decisions':   initDecisions();  break;
+    case 'assistant':   initAssistant();  break;
+    case 'staff':       initStaff();      break;
+    case 'audit':       initAudit();      break;
+    default: console.warn('VenueIQ: unknown section', name);
   }
 }
 
@@ -1293,17 +1583,32 @@ function initChat() {
 }
 
 /**
- * Sends a chat message and triggers an AI response.
- * Sanitizes user input and enforces MAX_INPUT_LENGTH.
+ * Sends a chat message through the full AI decision pipeline.
+ * Applies rate limiting, prompt injection filtering, sanitization, and
+ * renders a structured Explainable AI decision card.
  */
 function sendMessage() {
-  const input = document.getElementById('chatInput');
+  const input  = document.getElementById('chatInput');
   const langSel = document.getElementById('chatLang');
-  const raw = (input.value || '').trim().slice(0, MAX_INPUT_LENGTH);
+  const raw    = (input.value || '').trim().slice(0, MAX_INPUT_LENGTH);
   if (!raw) return;
-  const lang = langSel ? langSel.value : 'en';
 
-  addUserMessage(raw, lang);
+  // Rate limiting
+  if (!RateLimit.check()) {
+    addBotMessage('⚠️ Rate limit reached. Please wait before sending more messages.', 'en');
+    return;
+  }
+
+  // Prompt injection filtering
+  const guard = filterPromptInjection(raw);
+  if (!guard.safe) {
+    addBotMessage('⚠️ That message was flagged as potentially unsafe. Please rephrase your query.', 'en');
+    input.value = '';
+    return;
+  }
+
+  const lang = langSel ? langSel.value : 'en';
+  addUserMessage(guard.text, lang);
   input.value = '';
 
   const typingEl = document.getElementById('typingIndicator');
@@ -1311,8 +1616,8 @@ function sendMessage() {
 
   setTimeout(() => {
     if (typingEl) typingEl.style.display = 'none';
-    const response = getAIResponse(raw, STATE.currentPersona, lang);
-    addBotMessage(response, lang);
+    const decision = runAIPipeline(guard.text, STATE.currentPersona);
+    addBotMessage(null, lang, decision);
   }, CHAT_RESPONSE_BASE_MS + Math.random() * CHAT_RESPONSE_JITTER_MS);
 }
 
@@ -1337,31 +1642,75 @@ function addUserMessage(text, lang) {
 
 /**
  * Adds an AI bot message bubble to the chat.
- * @param {string} text - AI response text
- * @param {string} lang - Language code
+ * When a decision object is provided, renders a full Explainable AI decision card.
+ * Also writes every decision to the AuditLog.
+ * @param {string|null} text     - Plain text (used for system messages only)
+ * @param {string}      lang     - Language code
+ * @param {object}     [decision] - Structured AI decision from buildAIDecision()
  */
-function addBotMessage(text, lang) {
+function addBotMessage(text, lang, decision) {
   const el = document.getElementById('chatMessages');
   if (!el) return;
+
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble bot';
-  bubble.innerHTML = `
-    <div class="bot-avatar">VQ</div>
-    <div class="bubble-content">
-      <div class="bubble-persona">${sanitizeHTML(STATE.currentPersona.charAt(0).toUpperCase() + STATE.currentPersona.slice(1))} AI</div>
-      <div class="bubble-text">${sanitizeHTML(text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
-      ${lang !== 'en' ? `<div class="bubble-lang">${sanitizeHTML(lang.toUpperCase())}</div>` : ''}
-    </div>`;
+
+  const personaIcon = sanitizeHTML(ROLE_ICONS[STATE.currentPersona] || '🤖');
+  const personaName = sanitizeHTML(
+    (STATE.currentPersona.charAt(0).toUpperCase() + STATE.currentPersona.slice(1)) + ' AI'
+  );
+
+  const bodyHtml = decision
+    ? formatDecisionCard(decision)
+    : `<div class="bubble-text">${sanitizeHTML(text || '').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
+
+  const langBadge = (lang && lang !== 'en')
+    ? `<div class="bubble-lang">${sanitizeHTML(lang.toUpperCase())}</div>`
+    : '';
+
+  bubble.innerHTML = [
+    `<div class="bot-avatar" aria-hidden="true">${personaIcon}</div>`,
+    `<div class="bubble-content">`,
+    `  <div class="bubble-persona">${personaName}</div>`,
+    bodyHtml,
+    langBadge,
+    `</div>`,
+  ].join('');
+
   el.appendChild(bubble);
   el.scrollTop = el.scrollHeight;
-  STATE.chatMessages.push({ role: 'bot', text, lang, ts: Date.now() });
+  STATE.chatMessages.push({ role: 'bot', text: decision ? decision.decision : (text || ''), lang, ts: Date.now() });
+
+  // Audit log — every AI decision is recorded
+  if (decision) {
+    AuditLog.append({
+      ts: new Date().toISOString(),
+      user: STATE.currentPersona,
+      intent: decision.intent,
+      decision: decision.decision,
+      reason: decision.reason,
+      confidence: decision.confidence,
+      riskLevel: decision.riskLevel,
+      priority: decision.priority,
+      outcome: decision.expectedOutcome,
+    });
+  }
+
+  // Voice output if enabled
+  if (STATE.voiceOutput && decision) speakText(decision.decision);
 }
 
 /**
  * Sets the current AI persona and updates the chat greeting.
- * @param {string} persona - One of: fan, staff, volunteer, organizer
+ * Supported personas: fan, staff, volunteer, organizer, security, medical, vendor
+ * @param {string} persona - Role key
  */
 function setPersona(persona) {
+  // Allowlist validation
+  if (!AI_RESPONSES[persona]) {
+    console.warn('VenueIQ: unknown persona', persona);
+    return;
+  }
   STATE.currentPersona = persona;
   document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
   const card = document.getElementById(`persona-${persona}`);
@@ -1372,6 +1721,12 @@ function setPersona(persona) {
   if (msgs) msgs.innerHTML = '';
   addBotMessage(AI_RESPONSES[persona].greet, 'en');
 }
+
+/**
+ * Alias for setPersona — called from HTML persona card onclick handlers.
+ * @param {string} persona - Role key
+ */
+function selectPersona(persona) { setPersona(persona); }
 
 /** Renders quick-prompt chips for the current persona. */
 function renderPromptChips() {
@@ -1456,24 +1811,45 @@ function swapLangs() {
 
 // ─── Decision Hub ─────────────────────────────────────────────────────────────────────────
 /**
- * Sends a command query to the AI command center.
- * Sanitizes input and enforces MAX_INPUT_LENGTH.
+ * Sends a command query through the AI pipeline.
+ * Enforces rate limiting and prompt injection filtering before processing.
  */
 function sendCommandQuery() {
   const input = document.getElementById('commandInput');
   const raw = (input.value || '').trim().slice(0, MAX_INPUT_LENGTH);
   if (!raw) return;
-  addCommandMessage('user', raw);
+
+  // Rate limiting (shared pool with main chat)
+  if (!RateLimit.check()) {
+    addCommandMessage('ai', '⚠️ Rate limit reached. Please wait before sending more queries.');
+    return;
+  }
+
+  // Prompt injection filtering
+  const guard = filterPromptInjection(raw);
+  if (!guard.safe) {
+    addCommandMessage('ai', '⚠️ That command was flagged as potentially unsafe and has been blocked.');
+    input.value = '';
+    return;
+  }
+
+  addCommandMessage('user', guard.text);
   input.value = '';
+
   setTimeout(() => {
-    const confidence = (Math.random() * AI_CONFIDENCE_RANGE + AI_CONFIDENCE_MIN).toFixed(2);
-    const responses = [
-      `🤖 AI Analysis complete — deploying resources to high-priority zones. Confidence: ${confidence}`,
-      `📊 Status: 2 active incidents, 94% venue capacity, all systems operational. Confidence: ${confidence}`,
-      `🔄 AI recommends rerouting 2,000 fans to reduce Zone F density. Broadcast initiated. Confidence: ${confidence}`,
-      `✅ Command acknowledged. Dispatching team, updating dashboard. Confidence: ${confidence}`,
-    ];
-    addCommandMessage('ai', responses[Math.floor(Math.random() * responses.length)]);
+    const decision = runAIPipeline(guard.text, STATE.currentPersona);
+    const confidence = Math.round(decision.confidence * 100);
+    addCommandMessage('ai',
+      `🤖 Decision: ${decision.decision} | Confidence: ${confidence}% | Risk: ${decision.riskLevel.toUpperCase()} | Priority: ${decision.priority.toUpperCase()}\n` +
+      `Reason: ${decision.reason}`
+    );
+    AuditLog.append({
+      ts: new Date().toISOString(), user: STATE.currentPersona,
+      intent: decision.intent, decision: decision.decision,
+      reason: decision.reason, confidence: decision.confidence,
+      riskLevel: decision.riskLevel, priority: decision.priority,
+      outcome: decision.expectedOutcome,
+    });
   }, 800);
 }
 
@@ -1512,10 +1888,16 @@ function aiAnalyzeIncident(id) {
 
 /**
  * Filters the incident list by severity.
- * @param {string} sev - Severity filter: 'all', 'critical', 'medium', 'low'
+ * Validates severity against allowlist before rendering.
+ * @param {string} sev - Severity filter: 'all' | 'critical' | 'medium' | 'low'
  * @param {HTMLElement} btn - The clicked filter button
  */
 function filterIncidents(sev, btn) {
+  // Allowlist validation
+  if (!VALID_SEVERITIES.has(sev)) {
+    console.warn('VenueIQ: invalid severity filter', sev);
+    return;
+  }
   document.querySelectorAll('.incident-filter').forEach(b => {
     b.classList.remove('active');
     b.setAttribute('aria-pressed', 'false');
@@ -1526,17 +1908,17 @@ function filterIncidents(sev, btn) {
   if (!el) return;
   const filtered = sev === 'all' ? INCIDENTS : INCIDENTS.filter(i => i.sev === sev);
   el.innerHTML = filtered.map(inc => `
-    <div class="incident-card ${inc.sev}" role="listitem">
+    <div class="incident-card ${sanitizeHTML(inc.sev)}" role="listitem">
       <div class="inc-header">
-        <span class="inc-badge sev-${inc.sev}">${sanitizeHTML(inc.sev.toUpperCase())}</span>
+        <span class="inc-badge sev-${sanitizeHTML(inc.sev)}">${sanitizeHTML(inc.sev.toUpperCase())}</span>
         <span class="inc-time">${sanitizeHTML(inc.time)}</span>
         <span class="inc-status">${sanitizeHTML(inc.status)}</span>
       </div>
       <div class="inc-title">${sanitizeHTML(inc.title)}</div>
       <div class="inc-desc">${sanitizeHTML(inc.desc)}</div>
       <div class="inc-actions">
-        <button class="btn-sm btn-outline" onclick="aiAnalyzeIncident(${inc.id})">🤖 AI Analyze</button>
-        <button class="btn-sm btn-purple" onclick="deployResource(${inc.id})">Deploy Resource</button>
+        <button class="btn-sm btn-outline" onclick="aiAnalyzeIncident(${Number(inc.id)})">🤖 AI Analyze</button>
+        <button class="btn-sm btn-purple" onclick="deployResource(${Number(inc.id)})">Deploy Resource</button>
       </div>
     </div>
   `).join('');
@@ -1554,10 +1936,16 @@ function deployResource(id) {
 // ─── Navigation Mode ──────────────────────────────────────────────────────────────────────────
 /**
  * Sets the indoor navigation mode.
- * @param {string} mode - 'walking', 'accessible', 'fastest', or 'scenic'
+ * Validates mode against allowlist before applying.
+ * @param {string} mode - One of: 'walking', 'accessible', 'fastest', 'scenic'
  * @param {HTMLElement} btn - The clicked mode button
  */
 function setNavMode(mode, btn) {
+  // Allowlist validation — reject unknown modes
+  if (!VALID_NAV_MODES.has(mode)) {
+    console.warn('VenueIQ: invalid nav mode', mode);
+    return;
+  }
   STATE.navMode = mode;
   document.querySelectorAll('.nav-mode-btn').forEach(b => {
     b.classList.remove('active');
