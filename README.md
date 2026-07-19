@@ -101,6 +101,7 @@ addBotMessage()           ← render explainable AI card
 ```
 min-4/
 ├── index.html          # Main SPA (730+ lines, full ARIA)
+├── login.html          # Role-based login page with custom particle canvas BG
 ├── app.js              # Core logic (1700+ lines, all modules)
 ├── styles.css          # Design system (1350+ lines)
 ├── CHANGELOG.md        # All improvements with score impact
@@ -120,7 +121,7 @@ min-4/
     ├── test_ai.js           # 18 AI Decision Engine tests
     ├── test_transport.js    # 10 transport/resource tests
     ├── test_incident.js     # 12 incident management tests
-    ├── test_security.js     # 18 security/XSS tests
+    ├── test_security.js     # 21 security/XSS/auth tests
     ├── test_accessibility.js# 14 accessibility tests
     └── test_utils.js        # 12 utility tests
 ```
@@ -150,19 +151,19 @@ http://localhost:8765/tests/test-runner.html
 
 ## 🧪 Testing
 
-**136 automated tests across 9 suites** — run in-browser, zero configuration.
+**133 automated tests across 9 suites** — run in-browser, zero configuration.
 
 | Suite | Tests | Coverage |
 |---|---|---|
 | `test_navigation.js` | 15 | NAV_STEPS, POIs, setNavMode, updateNavRoute |
-| `test_chat.js` | 15 | AI_RESPONSES, QUICK_PROMPTS, personas, sendMessage |
+| `test_chat.js` | 16 | AI_RESPONSES, QUICK_PROMPTS, personas, sendMessage |
 | `test_dashboard.js` | 12 | ALERTS, INSIGHTS, ZONES, KPI render functions |
 | `test_ai.js` | 18 | getAIResponse, buildAIDecision, confidence, AuditLog |
 | `test_transport.js` | 10 | TIMELINE, RESOURCES, renderTimeline |
 | `test_incident.js` | 12 | INCIDENTS, filterIncidents, aiAnalyzeIncident |
-| `test_security.js` | 18 | sanitizeHTML, filterPromptInjection, RateLimit, MAX_INPUT_LENGTH |
-| `test_accessibility.js` | 14 | skip link, ARIA live, announce(), a11y panel functions |
-| `test_utils.js` | 12 | debounce, throttle, memoize, safeJSON |
+| `test_security.js` | 21 | sanitizeHTML, filterPromptInjection, RateLimit, checkAuthentication, signOut |
+| `test_accessibility.js` | 15 | skip link, ARIA live, announce(), a11y panel functions |
+| `test_utils.js` | 14 | debounce, throttle, memoize, safeJSON |
 
 ```bash
 # Open the test runner
@@ -199,7 +200,10 @@ VenueIQ targets **WCAG 2.1 AA** compliance.
 
 | Layer | Implementation |
 |---|---|
-| XSS protection | `sanitizeHTML()` — escapes all HTML entities before DOM insertion |
+| Session Authentication | `checkAuthentication()` — redirects unauthenticated traffic to `login.html` (auto-bypasses tests) |
+| Session Lifecycle | `signOut()` — clears all localStorage and sessionStorage keys on sign out |
+| User Profile | `updateUserNavbarProfile()` — renders active user identity badge and logout button dynamically |
+| XSS protection | `sanitizeHTML()` — escapes quotes, tags, ampersands, and strips event listeners before DOM insertion |
 | CSP | `Content-Security-Policy` meta tag — `default-src 'self'` |
 | Prompt injection | `filterPromptInjection()` — 15 blocked patterns (jailbreak, DAN, etc.) |
 | Input length | `MAX_INPUT_LENGTH = 500` enforced on all inputs |
