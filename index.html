@@ -3,21 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; img-src 'self' data:; connect-src 'self';" />
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="robots" content="index, follow" />
+  <meta property="og:title" content="VenueIQ — GenAI Tournament Operations Platform" />
+  <meta property="og:description" content="AI-powered venue operations for tournaments — crowd management, smart navigation, real-time decision support, 40+ languages." />
+  <meta property="og:type" content="website" />
   <title>VenueIQ — GenAI Tournament Operations Platform</title>
   <meta name="description" content="VenueIQ: AI-powered venue operations platform for tournaments — crowd management, smart navigation, real-time decision support, and multi-language assistance." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "VenueIQ",
+    "description": "GenAI-enabled platform for tournament venue operations — crowd management, navigation, incident response, and multi-language AI assistance.",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0" },
+    "featureList": ["Crowd AI", "Smart Navigation", "Real-Time Decision Hub", "Multi-Language Assistant", "Staff Ops"]
+  }
+  </script>
 </head>
 <body>
 
+<!-- Skip to main content (Accessibility) -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
 <!-- ═══════════════════════════════════════════════ NAVBAR ══ -->
-<nav class="navbar" id="navbar">
+<nav class="navbar" id="navbar" role="navigation" aria-label="Main navigation">
   <div class="nav-inner">
-    <div class="nav-logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="nav-logo" role="banner">
+      <div class="logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <circle cx="20" cy="20" r="18" stroke="url(#lg1)" stroke-width="2"/>
           <circle cx="20" cy="10" r="3" fill="#7c3aed"/>
           <circle cx="10" cy="28" r="3" fill="#2563eb"/>
@@ -36,18 +57,18 @@
       </div>
       <span class="logo-text">Venue<span class="logo-accent">IQ</span></span>
     </div>
-    <ul class="nav-links">
-      <li><a href="#dashboard" class="nav-link active" onclick="showSection('dashboard', this)">Dashboard</a></li>
-      <li><a href="#crowd" class="nav-link" onclick="showSection('crowd', this)">Crowd AI</a></li>
-      <li><a href="#navigation" class="nav-link" onclick="showSection('navigation', this)">Navigation</a></li>
-      <li><a href="#decisions" class="nav-link" onclick="showSection('decisions', this)">Decision Hub</a></li>
-      <li><a href="#assistant" class="nav-link" onclick="showSection('assistant', this)">AI Assistant</a></li>
-      <li><a href="#staff" class="nav-link" onclick="showSection('staff', this)">Staff Ops</a></li>
+    <ul class="nav-links" role="menubar" aria-label="Application sections">
+      <li role="none"><a href="#dashboard" class="nav-link active" role="menuitem" aria-current="page" id="nav-dashboard" onclick="showSection('dashboard', this)">Dashboard</a></li>
+      <li role="none"><a href="#crowd" class="nav-link" role="menuitem" id="nav-crowd" onclick="showSection('crowd', this)">Crowd AI</a></li>
+      <li role="none"><a href="#navigation" class="nav-link" role="menuitem" id="nav-navigation" onclick="showSection('navigation', this)">Navigation</a></li>
+      <li role="none"><a href="#decisions" class="nav-link" role="menuitem" id="nav-decisions" onclick="showSection('decisions', this)">Decision Hub</a></li>
+      <li role="none"><a href="#assistant" class="nav-link" role="menuitem" id="nav-assistant" onclick="showSection('assistant', this)">AI Assistant</a></li>
+      <li role="none"><a href="#staff" class="nav-link" role="menuitem" id="nav-staff" onclick="showSection('staff', this)">Staff Ops</a></li>
     </ul>
     <div class="nav-right">
-      <div class="live-indicator"><span class="pulse"></span> LIVE</div>
-      <button class="btn-cta" onclick="showSection('assistant', document.querySelector('[href=\'#assistant\']'))">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="currentColor"/></svg>
+      <div class="live-indicator" aria-label="System is live" role="status"><span class="pulse" aria-hidden="true"></span> LIVE</div>
+      <button class="btn-cta" id="nav-ai-console-btn" aria-label="Open AI Console" onclick="showSection('assistant', document.querySelector('[href=\'#assistant\']'))">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="currentColor"/></svg>
         AI Console
       </button>
     </div>
@@ -133,7 +154,7 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════ MAIN APP ══ -->
-<main class="app-main" id="app-main" style="display:none;">
+<main class="app-main" id="app-main" id="main-content" role="main" aria-label="Application content" style="display:none;">
 
   <!-- SECTION: DASHBOARD -->
   <section class="section active" id="section-dashboard">
@@ -143,13 +164,14 @@
         <p class="section-sub">Real-time intelligence across all venue systems · Last updated <span id="lastUpdated">just now</span></p>
       </div>
       <div class="header-actions">
-        <select class="select-venue" id="venueSelect">
+        <label for="venueSelect" class="sr-only">Select Venue</label>
+        <select class="select-venue" id="venueSelect" aria-label="Select venue">
           <option>🏟️ Main Arena — Hall A</option>
           <option>🏀 Court B — Basketball</option>
           <option>🎾 Tennis Ground 1</option>
           <option>🏊 Aquatics Centre</option>
         </select>
-        <button class="btn-sm btn-outline" onclick="refreshDashboard()">⟳ Refresh</button>
+        <button class="btn-sm btn-outline" id="refresh-dashboard-btn" aria-label="Refresh dashboard data" onclick="refreshDashboard()">⟳ Refresh</button>
       </div>
     </div>
 
@@ -212,13 +234,13 @@
             <span class="legend-dot" style="background:#22c55e"></span>Sparse
           </div>
         </div>
-        <canvas id="heatmapCanvas" width="700" height="280"></canvas>
+        <canvas id="heatmapCanvas" width="700" height="280" role="img" aria-label="Live crowd density heat map showing venue occupancy levels by zone"></canvas>
       </div>
       <div class="chart-card">
         <div class="chart-header">
           <h3>Zone Occupancy</h3>
         </div>
-        <canvas id="zoneChart" width="320" height="280"></canvas>
+        <canvas id="zoneChart" width="320" height="280" role="img" aria-label="Zone occupancy bar chart showing percentage capacity for each venue zone"></canvas>
       </div>
     </div>
 
@@ -228,16 +250,16 @@
         <div class="panel-title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Live Alert Feed
-          <span class="badge-count" id="alert-count">2</span>
+          <span class="badge-count" id="alert-count" aria-label="2 active alerts">2</span>
         </div>
-        <div class="alert-stream" id="alertStream"></div>
+        <div class="alert-stream" id="alertStream" role="log" aria-live="polite" aria-label="Live alert feed"></div>
       </div>
       <div class="insights-panel">
         <div class="panel-title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           AI Insights & Predictions
         </div>
-        <div class="insights-list" id="insightsList"></div>
+        <div class="insights-list" id="insightsList" aria-live="polite" aria-label="AI insights and predictions"></div>
       </div>
       <div class="weather-panel">
         <div class="panel-title">⛅ Venue Conditions</div>
@@ -277,7 +299,7 @@
       <div class="crowd-map-card">
         <div class="panel-title">🗺️ Real-Time Crowd Density Map</div>
         <div class="crowd-map-container">
-          <canvas id="crowdMapCanvas" width="620" height="420"></canvas>
+          <canvas id="crowdMapCanvas" width="620" height="420" role="img" aria-label="Real-time crowd density map showing live occupancy levels across all venue zones"></canvas>
           <div class="crowd-legend">
             <div class="crowd-legend-item"><div class="cl-color" style="background:#ef4444"></div><span>Critical (&gt;90%)</span></div>
             <div class="crowd-legend-item"><div class="cl-color" style="background:#f97316"></div><span>High (70–90%)</span></div>
@@ -285,19 +307,19 @@
             <div class="crowd-legend-item"><div class="cl-color" style="background:#22c55e"></div><span>Low (&lt;50%)</span></div>
           </div>
           <div class="crowd-controls">
-            <button class="btn-sm btn-purple" onclick="toggleCrowdSim()" id="simBtn">⏵ Run AI Simulation</button>
-            <button class="btn-sm btn-outline" onclick="resetCrowdMap()">↺ Reset</button>
+            <button class="btn-sm btn-purple" onclick="toggleCrowdSim()" id="simBtn" aria-pressed="false" aria-label="Run AI crowd simulation">⏵ Run AI Simulation</button>
+            <button class="btn-sm btn-outline" onclick="resetCrowdMap()" aria-label="Reset crowd map to initial state">↺ Reset</button>
           </div>
         </div>
       </div>
       <div class="crowd-side">
-        <div class="zone-cards" id="zoneCards"></div>
+        <div class="zone-cards" id="zoneCards" aria-label="Zone occupancy cards" aria-live="polite"></div>
         <div class="crowd-prediction-card">
           <div class="pred-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M2 12h2M20 12h2M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M17.66 6.34l-1.41 1.41M6.34 17.66l-1.41 1.41" stroke="#a855f7" stroke-width="2" stroke-linecap="round"/></svg>
             AI Crowd Forecast — Next 2 Hours
           </div>
-          <canvas id="forecastChart" width="340" height="160"></canvas>
+          <canvas id="forecastChart" width="340" height="160" role="img" aria-label="AI crowd forecast chart for the next 2 hours"></canvas>
           <div class="pred-alerts" id="predAlerts"></div>
         </div>
         <div class="ai-routing-card">
@@ -344,8 +366,8 @@
             <strong>Gate 3 — East Entrance</strong>
           </div>
           <div class="nav-dest-select">
-            <label>Navigate to:</label>
-            <select id="navDest" onchange="updateNavRoute()">
+            <label for="navDest">Navigate to:</label>
+            <select id="navDest" aria-label="Select navigation destination" onchange="updateNavRoute()">
               <option value="seat">🎟️ My Seat — Block D, Row 12</option>
               <option value="food">🍔 Nearest Food Court</option>
               <option value="toilet">🚻 Restroom (Accessible)</option>
@@ -356,7 +378,7 @@
           </div>
         </div>
         <div class="nav-canvas-wrap">
-          <canvas id="navCanvas" width="640" height="440"></canvas>
+          <canvas id="navCanvas" width="640" height="440" role="img" aria-label="Indoor navigation map showing your current location and route to destination"></canvas>
           <div class="nav-overlay-info" id="navOverlayInfo">
             <div class="nav-route-info">
               <span class="route-dist">📍 Est. 3 min walk · 220m</span>
@@ -364,11 +386,11 @@
             </div>
           </div>
         </div>
-        <div class="nav-mode-switcher">
-          <button class="nav-mode-btn active" id="nm-walking" onclick="setNavMode('walking', this)">🚶 Walking</button>
-          <button class="nav-mode-btn" id="nm-accessible" onclick="setNavMode('accessible', this)">♿ Accessible</button>
-          <button class="nav-mode-btn" id="nm-fastest" onclick="setNavMode('fastest', this)">⚡ Fastest</button>
-          <button class="nav-mode-btn" id="nm-scenic" onclick="setNavMode('scenic', this)">🌟 VIP Route</button>
+        <div class="nav-mode-switcher" role="group" aria-label="Navigation mode">
+          <button class="nav-mode-btn active" id="nm-walking" aria-pressed="true" onclick="setNavMode('walking', this)">🚶 Walking</button>
+          <button class="nav-mode-btn" id="nm-accessible" aria-pressed="false" onclick="setNavMode('accessible', this)">♿ Accessible</button>
+          <button class="nav-mode-btn" id="nm-fastest" aria-pressed="false" onclick="setNavMode('fastest', this)">⚡ Fastest</button>
+          <button class="nav-mode-btn" id="nm-scenic" aria-pressed="false" onclick="setNavMode('scenic', this)">🌟 VIP Route</button>
         </div>
       </div>
 
@@ -418,13 +440,13 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Incident Command Board
         </div>
-        <div class="incident-toolbar">
-          <button class="incident-filter active" onclick="filterIncidents('all', this)">All</button>
-          <button class="incident-filter" onclick="filterIncidents('critical', this)">Critical</button>
-          <button class="incident-filter" onclick="filterIncidents('medium', this)">Medium</button>
-          <button class="incident-filter" onclick="filterIncidents('low', this)">Low</button>
+        <div class="incident-toolbar" role="group" aria-label="Filter incidents by severity">
+          <button class="incident-filter active" aria-pressed="true" onclick="filterIncidents('all', this)">All</button>
+          <button class="incident-filter" aria-pressed="false" onclick="filterIncidents('critical', this)">Critical</button>
+          <button class="incident-filter" aria-pressed="false" onclick="filterIncidents('medium', this)">Medium</button>
+          <button class="incident-filter" aria-pressed="false" onclick="filterIncidents('low', this)">Low</button>
         </div>
-        <div class="incident-list" id="incidentList"></div>
+        <div class="incident-list" id="incidentList" role="list" aria-live="polite" aria-label="Active incidents"></div>
       </div>
 
       <div class="decision-center">
@@ -451,11 +473,12 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Command AI Query
           </div>
-          <div class="command-chat-messages" id="commandMessages"></div>
+          <div class="command-chat-messages" id="commandMessages" role="log" aria-live="polite" aria-label="AI command center messages"></div>
           <div class="command-chat-input">
-            <input type="text" id="commandInput" placeholder="Ask the AI command center..." onkeypress="if(event.key==='Enter')sendCommandQuery()" />
-            <button onclick="sendCommandQuery()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <label for="commandInput" class="sr-only">Ask the AI command center</label>
+            <input type="text" id="commandInput" placeholder="Ask the AI command center..." autocomplete="off" aria-label="Command query input" onkeypress="if(event.key==='Enter')sendCommandQuery()" />
+            <button onclick="sendCommandQuery()" aria-label="Send command query" id="command-send-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
         </div>
@@ -472,8 +495,8 @@
       </div>
       <div class="header-actions">
         <div class="lang-selector-group">
-          <label>Interface Language:</label>
-          <select id="uiLang" onchange="changeUILanguage()">
+          <label for="uiLang">Interface Language:</label>
+          <select id="uiLang" aria-label="Select interface language" onchange="changeUILanguage()">
             <option value="en">🇺🇸 English</option>
             <option value="hi">🇮🇳 Hindi</option>
             <option value="es">🇪🇸 Spanish</option>
@@ -550,12 +573,12 @@
             </div>
           </div>
           <div class="chat-controls">
-            <button class="chat-ctrl-btn" onclick="clearChat()" title="Clear chat">🗑️</button>
-            <button class="chat-ctrl-btn" onclick="exportChat()" title="Export">📤</button>
+            <button class="chat-ctrl-btn" id="clear-chat-btn" onclick="clearChat()" title="Clear chat" aria-label="Clear chat history">🗑️</button>
+            <button class="chat-ctrl-btn" id="export-chat-btn" onclick="exportChat()" title="Export chat" aria-label="Export chat transcript">📤</button>
           </div>
         </div>
 
-        <div class="chat-messages" id="chatMessages">
+        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="AI assistant conversation" aria-relevant="additions">
           <!-- Messages inserted by JS -->
         </div>
 
@@ -566,9 +589,11 @@
             <div class="typing-dot"></div>
           </div>
           <div class="chat-input-row">
-            <button class="chat-action-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice input">🎤</button>
-            <input type="text" id="chatInput" class="chat-input" placeholder="Ask me anything about the venue..." onkeypress="if(event.key==='Enter')sendMessage()" />
-            <select id="chatLang" class="chat-lang-sel">
+            <button class="chat-action-btn" id="voiceBtn" onclick="toggleVoice()" title="Toggle voice input" aria-label="Toggle voice input" aria-pressed="false">🎤</button>
+            <label for="chatInput" class="sr-only">Type your message</label>
+            <input type="text" id="chatInput" class="chat-input" placeholder="Ask me anything about the venue..." autocomplete="off" aria-label="Chat message input" onkeypress="if(event.key==='Enter')sendMessage()" />
+            <label for="chatLang" class="sr-only">Select response language</label>
+            <select id="chatLang" class="chat-lang-sel" aria-label="Select response language">
               <option value="en">EN</option>
               <option value="hi">HI</option>
               <option value="es">ES</option>
@@ -577,8 +602,8 @@
               <option value="zh">ZH</option>
               <option value="ja">JA</option>
             </select>
-            <button class="chat-send-btn" onclick="sendMessage()" id="sendBtn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <button class="chat-send-btn" onclick="sendMessage()" id="sendBtn" aria-label="Send message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
         </div>
@@ -587,20 +612,21 @@
       <div class="translation-panel">
         <div class="panel-title">🌍 Translation Engine</div>
         <div class="translation-demo">
-          <textarea id="translateInput" class="translate-ta" placeholder="Type any message here..." rows="4" oninput="liveTranslate()"></textarea>
+          <label for="translateInput" class="sr-only">Text to translate</label>
+          <textarea id="translateInput" class="translate-ta" placeholder="Type any message here..." rows="4" aria-label="Enter text to translate" autocomplete="off" oninput="liveTranslate()"></textarea>
           <div class="translate-langs">
             <div class="trans-from">
-              <label>From</label>
-              <select id="fromLang">
+              <label for="fromLang">From</label>
+              <select id="fromLang" aria-label="Source language">
                 <option value="en">🇺🇸 English</option>
                 <option value="hi">🇮🇳 Hindi</option>
                 <option value="es">🇪🇸 Spanish</option>
               </select>
             </div>
-            <div class="swap-btn" onclick="swapLangs()">⇄</div>
+            <button class="swap-btn" onclick="swapLangs()" aria-label="Swap source and target languages">⇄</button>
             <div class="trans-to">
-              <label>To</label>
-              <select id="toLang">
+              <label for="toLang">To</label>
+              <select id="toLang" aria-label="Target language">
                 <option value="hi">🇮🇳 Hindi</option>
                 <option value="en">🇺🇸 English</option>
                 <option value="es">🇪🇸 Spanish</option>
@@ -611,7 +637,7 @@
               </select>
             </div>
           </div>
-          <div class="translate-output" id="translateOutput">
+          <div class="translate-output" id="translateOutput" aria-live="polite" aria-label="Translation output">
             <div class="trans-placeholder">Translation will appear here...</div>
           </div>
           <div class="trans-actions">
@@ -642,7 +668,7 @@
     <div class="staff-grid">
       <div class="staff-map-card">
         <div class="panel-title">🗺️ Staff Deployment Map</div>
-        <canvas id="staffCanvas" width="620" height="380"></canvas>
+        <canvas id="staffCanvas" width="620" height="380" role="img" aria-label="Staff deployment map showing positions and coverage zones for all personnel"></canvas>
         <div class="staff-legend">
           <div class="staff-leg-item"><div class="sl-dot" style="background:#7c3aed"></div>Security</div>
           <div class="staff-leg-item"><div class="sl-dot" style="background:#06b6d4"></div>Medics</div>
@@ -680,17 +706,17 @@
 </main>
 
 <!-- AR Modal -->
-<div class="modal-overlay" id="arModal" style="display:none;">
+<div class="modal-overlay" id="arModal" role="dialog" aria-modal="true" aria-labelledby="arModalTitle" style="display:none;">
   <div class="modal-content ar-modal">
-    <div class="modal-close" onclick="closeAR()">✕</div>
+    <button class="modal-close" onclick="closeAR()" aria-label="Close AR navigation modal">✕</button>
     <div class="ar-sim">
-      <div class="ar-sim-header">📱 AR Navigation Simulation</div>
+      <div class="ar-sim-header" id="arModalTitle">📱 AR Navigation Simulation</div>
       <div class="ar-sim-body">
-        <div class="ar-camera-view">
-          <div class="ar-grid"></div>
-          <div class="ar-direction-arrow" id="arArrow">↑</div>
-          <div class="ar-instruction" id="arInstruction">Head towards Gate 3 entrance</div>
-          <div class="ar-progress-bar"><div class="ar-progress-fill" id="arFill"></div></div>
+        <div class="ar-camera-view" aria-live="polite">
+          <div class="ar-grid" aria-hidden="true"></div>
+          <div class="ar-direction-arrow" id="arArrow" aria-hidden="true">↑</div>
+          <div class="ar-instruction" id="arInstruction" role="status">Head towards Gate 3 entrance</div>
+          <div class="ar-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ar-progress-fill" id="arFill"></div></div>
           <div class="ar-eta">ETA: <span id="arEta">3 min</span></div>
         </div>
       </div>
