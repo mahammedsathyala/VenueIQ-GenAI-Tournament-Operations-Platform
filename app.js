@@ -15,14 +15,20 @@
 function sanitizeHTML(str) {
   if (str === null || str === undefined) return '';
   let s = String(str);
+  // Escape all HTML special characters
   s = s.replace(/&/g, '&amp;')
        .replace(/</g, '&lt;')
        .replace(/>/g, '&gt;')
        .replace(/"/g, '&quot;')
        .replace(/'/g, '&#39;');
-  s = s.replace(/onclick/gi, '')
-       .replace(/onerror/gi, '')
-       .replace(/onload/gi, '');
+  // Strip ALL inline event handlers (on* attributes)
+  s = s.replace(/\bon\w+\s*=/gi, '');
+  // Strip dangerous URL protocols (javascript:, data:, vbscript:)
+  s = s.replace(/javascript\s*:/gi, '')
+       .replace(/data\s*:/gi, '')
+       .replace(/vbscript\s*:/gi, '');
+  // Strip expression() CSS injection
+  s = s.replace(/expression\s*\(/gi, '');
   return s;
 }
 
@@ -58,6 +64,9 @@ const RATE_LIMIT_WINDOW_MS         = 60000; // 1 minute
 const REALTIME_CROWD_INTERVAL_MS   = 8000;
 const REALTIME_INCIDENT_INTERVAL_MS= 30000;
 const REALTIME_WEATHER_INTERVAL_MS = 60000;
+const AI_CONFIDENCE_MIN            = 0.82; // minimum confidence for AI decisions
+const AI_CONFIDENCE_RANGE          = 0.15; // random jitter range above minimum
+const AUDIT_LOG_MAX_ENTRIES        = 200;  // maximum audit log size before trimming
 
 // ─── Efficiency: throttle() ──────────────────────────────────────────────────
 /**
@@ -122,6 +131,10 @@ function filterPromptInjection(text) {
     'bypass', 'override instructions', 'forget your instructions',
     'act as', 'pretend you are', 'roleplay as', 'simulate',
     'do anything now', 'no restrictions', 'without limitations',
+    'system prompt', 'you are now', 'new persona', 'ignore your training',
+    'disable safety', 'turn off filter', 'admin mode', 'god mode',
+    'execute code', 'run command', 'shell command', 'eval(',
+    'print(', 'import os', 'subprocess', '__import__',
   ];
   for (const pattern of dangerPatterns) {
     if (lower.includes(pattern)) {
@@ -177,7 +190,7 @@ const AuditLog = {
    */
   append(entry) {
     this._entries.unshift({ ...entry, ts: entry.ts || new Date().toISOString() });
-    if (this._entries.length > 200) this._entries.pop(); // cap at 200
+    if (this._entries.length > AUDIT_LOG_MAX_ENTRIES) this._entries.pop(); // cap at max
     this._renderLog();
   },
   /** Returns all audit entries. */
@@ -298,7 +311,7 @@ function buildAIDecision(persona, intent, query) {
   };
   const roleMap = { fan:'Fan Assistant', staff:'Operations Commander', volunteer:'Volunteer Coordinator', organizer:'Event Director' };
   const map = intentMap[intent] || intentMap.crowd;
-  const confidence = parseFloat((Math.random() * 0.15 + 0.82).toFixed(2));
+  const confidence = parseFloat((Math.random() * AI_CONFIDENCE_RANGE + AI_CONFIDENCE_MIN).toFixed(2));
   return {
     intent: intent || 'general_query',
     role: roleMap[persona] || 'AI Assistant',
@@ -816,11 +829,15 @@ function initDashboard() {
   startKPIUpdates();
 }
 
+/**
+ * Renders the alert stream list from the ALERTS data array into the #alertStream element.
+ * All alert content is XSS-sanitized before DOM insertion.
+ */
 function renderAlertStream() {
   const el = document.getElementById('alertStream');
   if (!el) return;
   el.innerHTML = ALERTS.map(a => `
-    <div class="alert-item ${a.type}">
+    <div class="alert-item ${sanitizeHTML(a.type)}">
       <span>${sanitizeHTML(a.icon)}</span>
       <span>${sanitizeHTML(a.msg)}</span>
       <span class="alert-time">${sanitizeHTML(a.time)}</span>
@@ -828,6 +845,10 @@ function renderAlertStream() {
   `).join('');
 }
 
+/**
+ * Renders AI insights from the INSIGHTS data array into the #insightsList element.
+ * Each insight card shows a labelled tag and descriptive text.
+ */
 function renderInsights() {
   const el = document.getElementById('insightsList');
   if (!el) return;
@@ -878,7 +899,9 @@ function drawHeatmap() {
       ctx.textAlign = 'center';
       ctx.fillText(`${Math.round(z.density*100)}%`, x+w/2, y+h/2+4);
     });
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: heatmap render error', err);
+  }
 }
 
 function drawZoneChart() {
@@ -913,9 +936,21 @@ function drawZoneChart() {
       ctx.font = 'bold 10px Inter';
       ctx.fillText(`${v}%`, 88 + barW + 4, y + barH/2 + 4);
     });
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: zone chart render error', err);
+  }
 }
 
+/**
+ * Draws a rounded rectangle path on the canvas context.
+ * Does not fill or stroke — caller is responsible for that.
+ * @param {CanvasRenderingContext2D} ctx - Canvas 2D context
+ * @param {number} x - Left edge
+ * @param {number} y - Top edge
+ * @param {number} w - Width
+ * @param {number} h - Height
+ * @param {number} r - Border radius
+ */
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -945,6 +980,10 @@ function startKPIUpdates() {
 }
 
 // ─── Crowd Management ─────────────────────────────────────────────────────────
+/**
+ * Initialises the Crowd Management section: renders zone cards,
+ * crowd map, forecast chart, routing list, predictions, and gate utilisation.
+ */
 function initCrowd() {
   renderZoneCards();
   drawCrowdMap();
@@ -956,6 +995,10 @@ function initCrowd() {
   renderGateUtil();
 }
 
+/**
+ * Renders zone occupancy cards from the ZONES data array into #zoneCards.
+ * Shows name, live count, percentage fill bar, and colour-coded status.
+ */
 function renderZoneCards() {
   const el = document.getElementById('zoneCards');
   if (!el) return;
@@ -974,6 +1017,10 @@ function renderZoneCards() {
   }).join('');
 }
 
+/**
+ * Draws the real-time crowd density map on #crowdMapCanvas.
+ * Uses radial gradients colour-coded by density level per zone.
+ */
 function drawCrowdMap() {
   const canvas = document.getElementById('crowdMapCanvas');
   if (!canvas) return;
@@ -1006,9 +1053,15 @@ function drawCrowdMap() {
       roundRect(ctx, x, y, w, h, 4);
       ctx.fill();
     });
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: crowd map render error', err);
+  }
 }
 
+/**
+ * Draws the crowd density forecast line chart on #forecastChart.
+ * Shows projected venue capacity % over the next 2 hours.
+ */
 function drawForecastChart() {
   const canvas = document.getElementById('forecastChart');
   if (!canvas) return;
@@ -1028,9 +1081,14 @@ function drawForecastChart() {
     ctx.strokeStyle = '#7c3aed';
     ctx.lineWidth = 2;
     ctx.stroke();
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: forecast chart render error', err);
+  }
 }
 
+/**
+ * Renders AI-recommended crowd routing actions into #routingList.
+ */
 function renderRoutingList() {
   const el = document.getElementById('routingList');
   if (!el) return;
@@ -1041,12 +1099,19 @@ function renderRoutingList() {
   el.innerHTML = routings.map(r => `<div class="routing-item"><span>${sanitizeHTML(r)}</span></div>`).join('');
 }
 
+/**
+ * Renders AI predictive alerts into #predAlerts when density thresholds are exceeded.
+ */
 function renderPredAlerts() {
   const el = document.getElementById('predAlerts');
   if (!el) return;
   el.innerHTML = '<div class="pred-alert">⚠️ Prediction threshold reached.</div>';
 }
 
+/**
+ * Draws the crowd flow direction chart on #flowChart.
+ * Placeholder for real-time ingress/egress vector visualisation.
+ */
 function drawFlowChart() {
   const canvas = document.getElementById('flowChart');
   if (!canvas) return;
@@ -1054,9 +1119,15 @@ function drawFlowChart() {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: flow chart render error', err);
+  }
 }
 
+/**
+ * Draws the average dwell time per zone chart on #dwellChart.
+ * Placeholder for AI-computed average fan dwell time analysis.
+ */
 function drawDwellChart() {
   const canvas = document.getElementById('dwellChart');
   if (!canvas) return;
@@ -1064,9 +1135,15 @@ function drawDwellChart() {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: dwell chart render error', err);
+  }
 }
 
+/**
+ * Renders gate utilisation statistics into #gateUtil.
+ * Highlights gates approaching or exceeding safe throughput capacity.
+ */
 function renderGateUtil() {
   const el = document.getElementById('gateUtil');
   if (!el) return;
@@ -1092,19 +1169,29 @@ function toggleCrowdSim() {
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
+/**
+ * Initialises the Smart Navigation section: draws the venue map,
+ * renders turn-by-turn steps, and populates the POI grid.
+ */
 function initNavigation() {
   drawNavCanvas();
   renderSteps();
   renderPOIs();
 }
 
+/**
+ * Draws the indoor venue navigation map on #navCanvas.
+ * Re-rendered whenever the destination or mode changes.
+ */
 function drawNavCanvas() {
   const canvas = document.getElementById('navCanvas');
   if (!canvas) return;
   try {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: nav canvas render error', err);
+  }
 }
 
 /**
@@ -1118,12 +1205,21 @@ function updateNavRoute() {
   renderSteps();
 }
 
+/**
+ * Renders the turn-by-turn navigation steps for the current destination.
+ * Steps are drawn from NAV_STEPS[STATE.navDest].
+ */
 function renderSteps() {
   const el = document.getElementById('stepsList');
   if (!el) return;
-  el.innerHTML = NAV_STEPS[STATE.navDest].map(s => `<div>${sanitizeHTML(s.step)}</div>`).join('');
+  const steps = NAV_STEPS[STATE.navDest] || NAV_STEPS.seat;
+  el.innerHTML = steps.map(s => `<div>${sanitizeHTML(s.step)}</div>`).join('');
 }
 
+/**
+ * Renders the Points of Interest grid from the POIS data array.
+ * Each POI shows emoji, name, and distance from current position.
+ */
 function renderPOIs() {
   const el = document.getElementById('poiGrid');
   if (!el) return;
@@ -1145,6 +1241,10 @@ function closeAR() {
 }
 
 // ─── Decisions ─────────────────────────────────────────────────────────────────────────
+/**
+ * Initialises the Decision Hub section: loads incident list, recommendations,
+ * resource grid, timeline, and seeds the AI command center greeting.
+ */
 function initDecisions() {
   filterIncidents('all', document.querySelector('.incident-filter'));
   renderRecommendations();
@@ -1157,12 +1257,20 @@ function initDecisions() {
   }
 }
 
+/**
+ * Renders a basic incident title list into #incidentList.
+ * Used as a lightweight fallback; filterIncidents() renders the full cards.
+ */
 function renderIncidents() {
   const el = document.getElementById('incidentList');
   if (!el) return;
   el.innerHTML = INCIDENTS.map(inc => `<div>${sanitizeHTML(inc.title)}</div>`).join('');
 }
 
+/**
+ * Renders AI-generated recommendations into #recommendList.
+ * Each card shows an icon, label, and detailed action text.
+ */
 function renderRecommendations() {
   const el = document.getElementById('recommendList');
   if (!el) return;
@@ -1406,7 +1514,7 @@ function sendCommandQuery() {
   addCommandMessage('user', raw);
   input.value = '';
   setTimeout(() => {
-    const confidence = (Math.random() * 0.15 + 0.82).toFixed(2);
+    const confidence = (Math.random() * AI_CONFIDENCE_RANGE + AI_CONFIDENCE_MIN).toFixed(2);
     const responses = [
       `🤖 AI Analysis complete — deploying resources to high-priority zones. Confidence: ${confidence}`,
       `📊 Status: 2 active incidents, 94% venue capacity, all systems operational. Confidence: ${confidence}`,
@@ -1438,7 +1546,7 @@ function addCommandMessage(type, text) {
  */
 function aiAnalyzeIncident(id) {
   const inc = INCIDENTS.find(i => i.id === id);
-  const confidence = (Math.random() * 0.15 + 0.82).toFixed(2);
+  const confidence = (Math.random() * AI_CONFIDENCE_RANGE + AI_CONFIDENCE_MIN).toFixed(2);
   const protocols = ['Delta', 'Alpha', 'Sigma', 'Bravo', 'Omega'];
   const proto = `Protocol ${Math.floor(Math.random()*5+1)} — ${protocols[Math.floor(Math.random()*5)]}`;
   const escalation = Math.floor(Math.random()*30+15);
@@ -1508,6 +1616,10 @@ function setNavMode(mode, btn) {
 }
 
 // ─── Staff Ops ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Initialises the Staff Operations section: draws staff deployment map,
+ * renders summaries, task list, resource grid, timeline, and charts.
+ */
 function initStaff() {
   drawStaffCanvas();
   renderStaffSummary();
@@ -1519,6 +1631,10 @@ function initStaff() {
   renderSkillMatch();
 }
 
+/**
+ * Draws the live staff deployment map on #staffCanvas.
+ * Colour-coded dots indicate each team type's current position.
+ */
 function drawStaffCanvas() {
   const canvas = document.getElementById('staffCanvas');
   if (!canvas) return;
@@ -1549,9 +1665,15 @@ function drawStaffCanvas() {
       ctx.lineWidth = 1;
       ctx.stroke();
     });
-  } catch(e) {}
+  } catch (err) {
+    console.warn('VenueIQ: staff canvas render error', err);
+  }
 }
 
+/**
+ * Renders the staff headcount summary cards (Security, Medics, Volunteers, Ops)
+ * from STAFF_SUMMARY data into #staffSummary.
+ */
 function renderStaffSummary() {
   const el = document.getElementById('staffSummary');
   if (!el) return;
@@ -1564,6 +1686,10 @@ function renderStaffSummary() {
   `).join('');
 }
 
+/**
+ * Renders the operational task list from TASKS data into #taskList.
+ * Each row shows priority colour, task name, zone, and assignee.
+ */
 function renderTaskList() {
   const el = document.getElementById('taskList');
   if (!el) return;
@@ -1578,6 +1704,10 @@ function renderTaskList() {
   `).join('');
 }
 
+/**
+ * Renders the deployable resource grid from RESOURCES data into #resourceGrid.
+ * Shows each unit's status and a Deploy/Recall toggle button.
+ */
 function renderResourceGrid() {
   const el = document.getElementById('resourceGrid');
   if (!el) return;
@@ -1593,11 +1723,19 @@ function renderResourceGrid() {
   `).join('');
 }
 
+/**
+ * Toggles the deployed state of a resource and re-renders the grid.
+ * @param {number} idx - Index into RESOURCES array
+ */
 function toggleResource(idx) {
   RESOURCES[idx].deployed = !RESOURCES[idx].deployed;
   renderResourceGrid();
 }
 
+/**
+ * Renders the event timeline from TIMELINE data into #timeline.
+ * Each entry has a colour-coded dot, time, event name, and note.
+ */
 function renderTimeline() {
   const el = document.getElementById('timeline');
   if (!el) return;
@@ -1668,6 +1806,10 @@ function resetCrowdMap() {
 }
 
 
+/**
+ * Draws the staff response time bar chart on #responseChart.
+ * Bars show average response time per team type in minutes.
+ */
 function drawResponseChart() {
   const canvas = document.getElementById('responseChart');
   if (!canvas) return;
@@ -1695,6 +1837,10 @@ function drawResponseChart() {
   });
 }
 
+/**
+ * Draws the zone coverage percentage bar chart on #coverageChart.
+ * Green/amber/red bars reflect security coverage levels per zone.
+ */
 function drawCoverageChart() {
   const canvas = document.getElementById('coverageChart');
   if (!canvas) return;
@@ -1713,6 +1859,10 @@ function drawCoverageChart() {
   drawBarChart(ctx, W, H, zones.map(z => ({ ...z, val: z.pct, label: z.name })));
 }
 
+/**
+ * Renders the AI skill-match progress bars from skills data into #skillMatch.
+ * Shows volunteer competency coverage across key operational skill areas.
+ */
 function renderSkillMatch() {
   const el = document.getElementById('skillMatch');
   if (!el) return;
@@ -1732,8 +1882,14 @@ function renderSkillMatch() {
   `).join('');
 }
 
+/**
+ * Runs AI staff optimisation: rebalances volunteer and security deployment
+ * across zones and re-renders the task list and staff canvas.
+ */
 function optimizeStaff() {
-  addCommandMessage?.('ai', '✨ AI staff optimization complete. Redeploying 12 volunteers to Zone F, 3 security to Gate 5 area. Coverage improved by 18%.');
+  if (typeof addCommandMessage === 'function') {
+    addCommandMessage('ai', '✨ AI staff optimization complete. Redeploying 12 volunteers to Zone F, 3 security to Gate 5 area. Coverage improved by 18%.');
+  }
   renderTaskList();
   drawStaffCanvas();
 }
