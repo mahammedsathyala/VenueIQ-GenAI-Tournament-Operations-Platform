@@ -6,7 +6,7 @@
 
 **AI-powered venue operations platform for FIFA World Cup 2026**
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-GitHub_Pages-7c3aed?style=for-the-badge)](https://mahamadhu036.github.io/VenueIQ-GenAI-Tournament-Operations-Platform/)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-GitHub_Pages-7c3aed?style=for-the-badge)](https://mahammedsathyala.github.io/VenueIQ-GenAI-Tournament-Operations-Platform/)
 [![Tests](https://img.shields.io/badge/✅_Tests-142_Passing-10b981?style=for-the-badge)](#testing)
 [![WCAG](https://img.shields.io/badge/♿_WCAG-2.1_AA-06b6d4?style=for-the-badge)](#accessibility)
 [![Security](https://img.shields.io/badge/🔐_XSS_Protected-CSP_Enabled-ef4444?style=for-the-badge)](#security)
@@ -132,7 +132,7 @@ min-4/
 
 ```bash
 # Clone
-git clone https://github.com/mahamadhu036/VenueIQ-GenAI-Tournament-Operations-Platform.git
+git clone https://github.com/mahammedsathyala/VenueIQ-GenAI-Tournament-Operations-Platform.git
 cd VenueIQ-GenAI-Tournament-Operations-Platform
 
 # Serve (requires Python 3)

@@ -17,16 +17,16 @@ function sanitizeHTML(str) {
   let s = String(str);
   // Escape all HTML special characters
   s = s.replace(/&/g, '&amp;')
-       .replace(/</g, '&lt;')
-       .replace(/>/g, '&gt;')
-       .replace(/"/g, '&quot;')
-       .replace(/'/g, '&#39;');
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
   // Strip ALL inline event handlers (on* attributes)
   s = s.replace(/\bon\w+\s*=/gi, '');
   // Strip dangerous URL protocols (javascript:, data:, vbscript:)
   s = s.replace(/javascript\s*:/gi, '')
-       .replace(/data\s*:/gi, '')
-       .replace(/vbscript\s*:/gi, '');
+    .replace(/data\s*:/gi, '')
+    .replace(/vbscript\s*:/gi, '');
   // Strip expression() CSS injection
   s = s.replace(/expression\s*\(/gi, '');
   return s;
@@ -42,45 +42,45 @@ function sanitizeHTML(str) {
  */
 function debounce(fn, delay) {
   let timer;
-  return function(...args) {
+  return function (...args) {
     clearTimeout(timer);
     timer = setTimeout(() => fn.apply(this, args), delay);
   };
 }
 
 // ─── Named Constants ─────────────────────────────────────────────────────────────────────────────
-const DEBOUNCE_TRANSLATE_MS        = 400;
-const KPI_UPDATE_INTERVAL_MS       = 5000;
-const DASHBOARD_REFRESH_MS         = 8000;
-const CROWD_SIM_INTERVAL_MS        = 1500;
-const COUNTER_REFRESH_MS           = 30000;
-const PARTICLE_COUNT               = 60;
-const PARTICLE_CONNECTION_DIST     = 120;
-const CHAT_RESPONSE_BASE_MS        = 1000;
-const CHAT_RESPONSE_JITTER_MS      = 800;
-const MAX_INPUT_LENGTH             = 500;
-const RATE_LIMIT_MAX               = 10;   // max messages per window
-const RATE_LIMIT_WINDOW_MS         = 60000; // 1 minute
-const REALTIME_CROWD_INTERVAL_MS   = 8000;
-const REALTIME_INCIDENT_INTERVAL_MS= 30000;
+const DEBOUNCE_TRANSLATE_MS = 400;
+const KPI_UPDATE_INTERVAL_MS = 5000;
+const DASHBOARD_REFRESH_MS = 8000;
+const CROWD_SIM_INTERVAL_MS = 1500;
+const COUNTER_REFRESH_MS = 30000;
+const PARTICLE_COUNT = 60;
+const PARTICLE_CONNECTION_DIST = 120;
+const CHAT_RESPONSE_BASE_MS = 1000;
+const CHAT_RESPONSE_JITTER_MS = 800;
+const MAX_INPUT_LENGTH = 500;
+const RATE_LIMIT_MAX = 10;   // max messages per window
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const REALTIME_CROWD_INTERVAL_MS = 8000;
+const REALTIME_INCIDENT_INTERVAL_MS = 30000;
 const REALTIME_WEATHER_INTERVAL_MS = 60000;
-const AI_CONFIDENCE_MIN            = 0.82; // minimum confidence for AI decisions
-const AI_CONFIDENCE_RANGE          = 0.15; // random jitter range above minimum
-const AUDIT_LOG_MAX_ENTRIES        = 200;  // maximum audit log size before trimming
+const AI_CONFIDENCE_MIN = 0.82; // minimum confidence for AI decisions
+const AI_CONFIDENCE_RANGE = 0.15; // random jitter range above minimum
+const AUDIT_LOG_MAX_ENTRIES = 200;  // maximum audit log size before trimming
 
 // ─── Role & Severity Constants ──────────────────────────────────────────────
 /** Maps persona keys to display icons. */
-const ROLE_ICONS  = { fan:'🎟️', staff:'👷', volunteer:'🤝', organizer:'📋', security:'👮', medical:'🚑', vendor:'🛍️' };
+const ROLE_ICONS = { fan: '🎟️', staff: '👷', volunteer: '🤝', organizer: '📋', security: '👮', medical: '🚑', vendor: '🛍️' };
 /** Maps persona keys to display names. */
-const ROLE_NAMES  = { fan:'Fan Assistant', staff:'Operations Commander', volunteer:'Volunteer Coordinator', organizer:'Event Director', security:'Security Commander', medical:'Medical Officer', vendor:'Vendor Manager' };
+const ROLE_NAMES = { fan: 'Fan Assistant', staff: 'Operations Commander', volunteer: 'Volunteer Coordinator', organizer: 'Event Director', security: 'Security Commander', medical: 'Medical Officer', vendor: 'Vendor Manager' };
 /** Risk level colour palette for decision cards. */
-const RISK_COLORS = { high:'#ef4444', medium:'#f97316', low:'#22c55e' };
+const RISK_COLORS = { high: '#ef4444', medium: '#f97316', low: '#22c55e' };
 /** Ordered labels for the AI decision pipeline visualization. */
-const PIPELINE_STAGES = ['Intent Detection','Role Detection','Context Retrieval','Operational Analysis','Decision Planning','Recommendation','Audit Log'];
+const PIPELINE_STAGES = ['Intent Detection', 'Role Detection', 'Context Retrieval', 'Operational Analysis', 'Decision Planning', 'Recommendation', 'Audit Log'];
 /** Valid navigation modes — used for allowlist validation. */
-const VALID_NAV_MODES = new Set(['walking','accessible','fastest','scenic']);
+const VALID_NAV_MODES = new Set(['walking', 'accessible', 'fastest', 'scenic']);
 /** Valid incident severity filters — used for allowlist validation. */
-const VALID_SEVERITIES = new Set(['all','critical','medium','low']);
+const VALID_SEVERITIES = new Set(['all', 'critical', 'medium', 'low']);
 
 // ─── Efficiency: throttle() ──────────────────────────────────────────────────
 /**
@@ -91,7 +91,7 @@ const VALID_SEVERITIES = new Set(['all','critical','medium','low']);
  */
 function throttle(fn, limit) {
   let lastCall = 0;
-  return function(...args) {
+  return function (...args) {
     const now = Date.now();
     if (now - lastCall >= limit) {
       lastCall = now;
@@ -109,7 +109,7 @@ function throttle(fn, limit) {
  */
 function memoize(fn) {
   const cache = new Map();
-  return function(...args) {
+  return function (...args) {
     const key = JSON.stringify(args);
     if (cache.has(key)) return cache.get(key);
     const result = fn.apply(this, args);
@@ -215,7 +215,7 @@ const AuditLog = {
   export() {
     const header = 'Timestamp,User,Intent,Decision,Reason,Confidence,Outcome\n';
     const rows = this._entries.map(e =>
-      `"${e.ts}","${e.user}","${e.intent}","${e.decision}","${(e.reason||'').replace(/"/g,"'")}","${e.confidence}","${e.outcome}"`
+      `"${e.ts}","${e.user}","${e.intent}","${e.decision}","${(e.reason || '').replace(/"/g, "'")}","${e.confidence}","${e.outcome}"`
     ).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const a = document.createElement('a');
@@ -229,15 +229,32 @@ const AuditLog = {
     if (!tbody) return;
     tbody.innerHTML = this._entries.slice(0, 50).map(e => `
       <tr>
-        <td>${sanitizeHTML(e.ts.slice(11,19))}</td>
+        <td>${sanitizeHTML(e.ts.slice(11, 19))}</td>
         <td><span class="audit-badge">${sanitizeHTML(e.user || 'system')}</span></td>
         <td>${sanitizeHTML(e.intent || '')}</td>
         <td>${sanitizeHTML(e.decision || '')}</td>
-        <td>${Math.round((e.confidence||0)*100)}%</td>
+        <td>${Math.round((e.confidence || 0) * 100)}%</td>
         <td><span class="audit-outcome">${sanitizeHTML(e.outcome || '')}</span></td>
       </tr>`).join('');
   }
 };
+
+/**
+ * Initialises the AI Audit section when it's first opened.
+ * (Was referenced by initSection() but never defined — caused
+ * "ReferenceError: initAudit is not defined" when clicking the Audit tab.)
+ */
+function initAudit() {
+  renderAuditPanel();
+}
+
+/**
+ * Re-renders the audit log table from current AuditLog entries.
+ * Used by initAudit() and the "⟳ Refresh" button.
+ */
+function renderAuditPanel() {
+  AuditLog._renderLog();
+}
 
 // ─── Accessibility: announce() ────────────────────────────────────────────────
 /**
@@ -273,7 +290,7 @@ function toggleAccessibility() {
   const panel = document.getElementById('a11yPanel');
   if (!panel) return;
   const open = panel.classList.toggle('open');
-  const btn  = document.getElementById('a11yToggleBtn');
+  const btn = document.getElementById('a11yToggleBtn');
   if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
@@ -314,21 +331,21 @@ function applyReducedMotion(on) {
 function detectIntent(query) {
   const q = (query || '').toLowerCase();
   const INTENT_PATTERNS = [
-    { key: 'seat',          patterns: ['seat', 'block', 'row', 'section', 'where.*sit', 'my seat'] },
-    { key: 'food',          patterns: ['food', 'eat', 'hungry', 'drink', 'restaurant', 'snack', 'beverage', 'concession', 'coffee'] },
-    { key: 'toilet',        patterns: ['toilet', 'restroom', 'bathroom', 'wc', 'loo'] },
-    { key: 'exit',          patterns: ['exit', 'leave', 'go home', 'depart', 'way out'] },
-    { key: 'crowd',         patterns: ['crowd', 'busy', 'capacity', 'full', 'density', 'packed'] },
-    { key: 'incident',      patterns: ['incident', 'emergency', 'alert', 'danger', 'unsafe', 'fight', 'fire'] },
-    { key: 'patrol',        patterns: ['patrol', 'coverage', 'redeploy', 'perimeter'] },
-    { key: 'medical',       patterns: ['medical', 'doctor', 'ambulance', 'injured', 'hurt', 'sick', 'first aid', 'unwell'] },
-    { key: 'transport',     patterns: ['transport', 'bus', 'taxi', 'train', 'shuttle', 'getting home', 'parking'] },
-    { key: 'weather',       patterns: ['weather', 'heat', 'rain', 'temperature', 'hot', 'humidity', 'uv'] },
+    { key: 'seat', patterns: ['seat', 'block', 'row', 'section', 'where.*sit', 'my seat'] },
+    { key: 'food', patterns: ['food', 'eat', 'hungry', 'drink', 'restaurant', 'snack', 'beverage', 'concession', 'coffee'] },
+    { key: 'toilet', patterns: ['toilet', 'restroom', 'bathroom', 'wc', 'loo'] },
+    { key: 'exit', patterns: ['exit', 'leave', 'go home', 'depart', 'way out'] },
+    { key: 'crowd', patterns: ['crowd', 'busy', 'capacity', 'full', 'density', 'packed'] },
+    { key: 'incident', patterns: ['incident', 'emergency', 'alert', 'danger', 'unsafe', 'fight', 'fire'] },
+    { key: 'patrol', patterns: ['patrol', 'coverage', 'redeploy', 'perimeter'] },
+    { key: 'medical', patterns: ['medical', 'doctor', 'ambulance', 'injured', 'hurt', 'sick', 'first aid', 'unwell'] },
+    { key: 'transport', patterns: ['transport', 'bus', 'taxi', 'train', 'shuttle', 'getting home', 'parking'] },
+    { key: 'weather', patterns: ['weather', 'heat', 'rain', 'temperature', 'hot', 'humidity', 'uv'] },
     { key: 'accessibility', patterns: ['wheelchair', 'disability', 'accessible', 'mobility', 'ramp', 'lift', 'elevator'] },
-    { key: 'vendor',        patterns: ['vendor', 'merchandise', 'souvenir', 'shop', 'store', 'buy', 'merch'] },
-    { key: 'summary',       patterns: ['summary', 'revenue', 'report', 'sales', 'analytics', 'overview'] },
-    { key: 'prediction',    patterns: ['predict', 'forecast', 'next', 'future', 'expect', 'surge'] },
-    { key: 'volunteer',     patterns: ['volunteer', 'assignment', 'shift', 'break', 'schedule', 'duty', 'task'] },
+    { key: 'vendor', patterns: ['vendor', 'merchandise', 'souvenir', 'shop', 'store', 'buy', 'merch'] },
+    { key: 'summary', patterns: ['summary', 'revenue', 'report', 'sales', 'analytics', 'overview'] },
+    { key: 'prediction', patterns: ['predict', 'forecast', 'next', 'future', 'expect', 'surge'] },
+    { key: 'volunteer', patterns: ['volunteer', 'assignment', 'shift', 'break', 'schedule', 'duty', 'task'] },
   ];
   for (const { key, patterns } of INTENT_PATTERNS) {
     if (patterns.some(p => q.includes(p))) return key;
@@ -497,19 +514,19 @@ function buildAIDecision(persona, intent, query) {
   const confidence = parseFloat((Math.random() * AI_CONFIDENCE_RANGE + AI_CONFIDENCE_MIN).toFixed(2));
 
   return {
-    intent:           intent || 'general',
-    userRole:         ROLE_NAMES[persona]  || 'AI Assistant',
-    roleIcon:         ROLE_ICONS[persona]  || '🤖',
+    intent: intent || 'general',
+    userRole: ROLE_NAMES[persona] || 'AI Assistant',
+    roleIcon: ROLE_ICONS[persona] || '🤖',
     situationAnalysis: map.situationAnalysis,
-    context:          `FIFA World Cup 2026 — ${sanitizeHTML(String(query || '').slice(0, 80))}`,
-    decision:         map.decision,
-    reason:           map.reason,
+    context: `FIFA World Cup 2026 — ${sanitizeHTML(String(query || '').slice(0, 80))}`,
+    decision: map.decision,
+    reason: map.reason,
     confidence,
-    alternative:      map.alternative,
-    expectedOutcome:  map.expectedOutcome,
-    riskLevel:        map.riskLevel,
-    priority:         map.priority,
-    dataUsed:         map.dataUsed,
+    alternative: map.alternative,
+    expectedOutcome: map.expectedOutcome,
+    riskLevel: map.riskLevel,
+    priority: map.priority,
+    dataUsed: map.dataUsed,
   };
 }
 
@@ -522,15 +539,15 @@ function buildAIDecision(persona, intent, query) {
  */
 function formatDecisionCard(dec) {
   const riskColor = RISK_COLORS[dec.riskLevel] || '#94a3b8';
-  const confPct   = Math.round((dec.confidence || 0) * 100);
+  const confPct = Math.round((dec.confidence || 0) * 100);
   const confColor = confPct >= 90 ? '#22c55e' : confPct >= 80 ? '#eab308' : '#f97316';
-  const priUp     = sanitizeHTML((dec.priority || 'low').toUpperCase());
+  const priUp = sanitizeHTML((dec.priority || 'low').toUpperCase());
 
   return [
     `<div class="ai-decision-card" role="article" aria-label="AI Decision">`,
     `  <div class="dc-header">`,
     `    <span class="dc-role-badge">${sanitizeHTML(dec.roleIcon)} ${sanitizeHTML(dec.userRole)}</span>`,
-    `    <span class="dc-intent-tag">${sanitizeHTML((dec.intent || '').replace(/_/g,' ').toUpperCase())}</span>`,
+    `    <span class="dc-intent-tag">${sanitizeHTML((dec.intent || '').replace(/_/g, ' ').toUpperCase())}</span>`,
     `  </div>`,
     `  <div class="dc-situation">`,
     `    <span class="dc-field-label">📊 Situation Analysis</span>`,
@@ -613,7 +630,7 @@ function startRealTimeSimulation() {
       id: INCIDENTS.length + Math.floor(Math.random() * 1000),
       sev: severities[Math.floor(Math.random() * severities.length)],
       title: titles[Math.floor(Math.random() * titles.length)],
-      time: new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }),
+      time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
       desc: 'AI-detected event. Automated triage in progress.',
       status: 'active',
     };
@@ -653,148 +670,148 @@ const STATE = {
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 const ALERTS = [
-  { type:'critical', icon:'🚨', msg:'Zone F overcrowding — 95% capacity', time:'14:02' },
-  { type:'warning',  icon:'⚠️', msg:'Gate 5 queue length exceeds 15 mins',  time:'14:05' },
-  { type:'info',     icon:'ℹ️', msg:'AI rerouting fans via Concourse B',    time:'14:06' },
-  { type:'success',  icon:'✅', msg:'Medical team deployed to Sector 3',     time:'14:08' },
-  { type:'warning',  icon:'⚡', msg:'Food Court D nearing capacity',         time:'14:10' },
-  { type:'info',     icon:'🔄', msg:'Nav system updated for halftime flow',   time:'14:12' },
-  { type:'success',  icon:'🟢', msg:'Gate 2 queue cleared — normal flow',    time:'14:15' },
+  { type: 'critical', icon: '🚨', msg: 'Zone F overcrowding — 95% capacity', time: '14:02' },
+  { type: 'warning', icon: '⚠️', msg: 'Gate 5 queue length exceeds 15 mins', time: '14:05' },
+  { type: 'info', icon: 'ℹ️', msg: 'AI rerouting fans via Concourse B', time: '14:06' },
+  { type: 'success', icon: '✅', msg: 'Medical team deployed to Sector 3', time: '14:08' },
+  { type: 'warning', icon: '⚡', msg: 'Food Court D nearing capacity', time: '14:10' },
+  { type: 'info', icon: '🔄', msg: 'Nav system updated for halftime flow', time: '14:12' },
+  { type: 'success', icon: '🟢', msg: 'Gate 2 queue cleared — normal flow', time: '14:15' },
 ];
 
 const INSIGHTS = [
-  { tag:'Crowd Prediction', text:'Expected 8% surge in Zone A after halftime. Recommend pre-positioning 6 volunteers.' },
-  { tag:'Revenue Opportunity', text:'Food Court C has 34% available capacity. AI suggests dynamic pricing discount to redirect footfall.' },
-  { tag:'Safety Alert', text:'AI detected unusual dwell pattern near Exit 7. Dispatching security check.' },
-  { tag:'Navigation Trend', text:'62% of fans searched for "Restroom" in the last 10 minutes. Activate digital signage on Concourse B.' },
+  { tag: 'Crowd Prediction', text: 'Expected 8% surge in Zone A after halftime. Recommend pre-positioning 6 volunteers.' },
+  { tag: 'Revenue Opportunity', text: 'Food Court C has 34% available capacity. AI suggests dynamic pricing discount to redirect footfall.' },
+  { tag: 'Safety Alert', text: 'AI detected unusual dwell pattern near Exit 7. Dispatching security check.' },
+  { tag: 'Navigation Trend', text: '62% of fans searched for "Restroom" in the last 10 minutes. Activate digital signage on Concourse B.' },
 ];
 
 const ZONES = [
-  { name:'Zone A — North', count:12400, cap:14000, color:'#f97316' },
-  { name:'Zone B — South', count: 9800, cap:12000, color:'#22c55e' },
-  { name:'Zone C — East',  count:11200, cap:12000, color:'#f97316' },
-  { name:'Zone D — West',  count: 7600, cap:12000, color:'#22c55e' },
-  { name:'Zone E — VIP',   count: 3200, cap: 4000, color:'#eab308' },
-  { name:'Zone F — Field', count: 1980, cap: 2000, color:'#ef4444' },
+  { name: 'Zone A — North', count: 12400, cap: 14000, color: '#f97316' },
+  { name: 'Zone B — South', count: 9800, cap: 12000, color: '#22c55e' },
+  { name: 'Zone C — East', count: 11200, cap: 12000, color: '#f97316' },
+  { name: 'Zone D — West', count: 7600, cap: 12000, color: '#22c55e' },
+  { name: 'Zone E — VIP', count: 3200, cap: 4000, color: '#eab308' },
+  { name: 'Zone F — Field', count: 1980, cap: 2000, color: '#ef4444' },
 ];
 
 const INCIDENTS = [
-  { id:1, sev:'critical', title:'Overcrowding Alert — Zone F', time:'14:02', desc:'Crowd density at 98% capacity. Immediate action required to prevent safety hazard. AI recommends closing entry via Gate 7.', status:'active' },
-  { id:2, sev:'medium', title:'Medical Assistance Needed', time:'14:08', desc:'Fan reported feeling unwell near Section D12. Medical team en route. Estimated arrival: 2 minutes.', status:'dispatched' },
-  { id:3, sev:'low', title:'Lost Property Reported', time:'13:45', desc:'Bag reported lost near Concourse B food court. Security scanning CCTV coverage.', status:'investigating' },
-  { id:4, sev:'medium', title:'Gate 5 Queue Overflow', time:'14:05', desc:'Queue exceeds 15-minute wait. AI recommends opening auxiliary Gate 5A and diverting fans from Gate 4.', status:'active' },
-  { id:5, sev:'low', title:'Accessibility Request', time:'13:52', desc:'Wheelchair assistance requested at East Entrance. Volunteer assigned. ETA 4 minutes.', status:'resolved' },
+  { id: 1, sev: 'critical', title: 'Overcrowding Alert — Zone F', time: '14:02', desc: 'Crowd density at 98% capacity. Immediate action required to prevent safety hazard. AI recommends closing entry via Gate 7.', status: 'active' },
+  { id: 2, sev: 'medium', title: 'Medical Assistance Needed', time: '14:08', desc: 'Fan reported feeling unwell near Section D12. Medical team en route. Estimated arrival: 2 minutes.', status: 'dispatched' },
+  { id: 3, sev: 'low', title: 'Lost Property Reported', time: '13:45', desc: 'Bag reported lost near Concourse B food court. Security scanning CCTV coverage.', status: 'investigating' },
+  { id: 4, sev: 'medium', title: 'Gate 5 Queue Overflow', time: '14:05', desc: 'Queue exceeds 15-minute wait. AI recommends opening auxiliary Gate 5A and diverting fans from Gate 4.', status: 'active' },
+  { id: 5, sev: 'low', title: 'Accessibility Request', time: '13:52', desc: 'Wheelchair assistance requested at East Entrance. Volunteer assigned. ETA 4 minutes.', status: 'resolved' },
 ];
 
 const RECOMMENDATIONS = [
-  { icon:'🔀', label:'Crowd Flow', text:'Redirect 2,000 fans from Gate 7 to Gates 4 and 6 to reduce Zone F density from 98% to ~78%.' },
-  { icon:'👮', label:'Security', text:'Deploy 4 additional security personnel to Zone F perimeter. Engage crowd management protocol Alpha-3.' },
-  { icon:'📢', label:'Communication', text:'Broadcast PA announcement in 6 languages directing fans to alternate food courts (B, C, G).' },
-  { icon:'🚑', label:'Medical', text:'Pre-position 2 medical teams near high-density zones. Heat advisory: ensure hydration stations are visible.' },
+  { icon: '🔀', label: 'Crowd Flow', text: 'Redirect 2,000 fans from Gate 7 to Gates 4 and 6 to reduce Zone F density from 98% to ~78%.' },
+  { icon: '👮', label: 'Security', text: 'Deploy 4 additional security personnel to Zone F perimeter. Engage crowd management protocol Alpha-3.' },
+  { icon: '📢', label: 'Communication', text: 'Broadcast PA announcement in 6 languages directing fans to alternate food courts (B, C, G).' },
+  { icon: '🚑', label: 'Medical', text: 'Pre-position 2 medical teams near high-density zones. Heat advisory: ensure hydration stations are visible.' },
 ];
 
 const RESOURCES = [
-  { icon:'👮', name:'Security Team A', status:'Available — 12 units', deployed:false },
-  { icon:'🚑', name:'Medical Unit 3', status:'On Standby — 4 medics', deployed:false },
-  { icon:'🤝', name:'Volunteer Squad', status:'Active — 28 members', deployed:true },
-  { icon:'🚐', name:'Transport Unit', status:'Ready — 3 vehicles', deployed:false },
-  { icon:'📡', name:'Comms Team', status:'Monitoring — 6 staff', deployed:true },
-  { icon:'🔧', name:'Tech Support', status:'On Call — 3 engineers', deployed:false },
+  { icon: '👮', name: 'Security Team A', status: 'Available — 12 units', deployed: false },
+  { icon: '🚑', name: 'Medical Unit 3', status: 'On Standby — 4 medics', deployed: false },
+  { icon: '🤝', name: 'Volunteer Squad', status: 'Active — 28 members', deployed: true },
+  { icon: '🚐', name: 'Transport Unit', status: 'Ready — 3 vehicles', deployed: false },
+  { icon: '📡', name: 'Comms Team', status: 'Monitoring — 6 staff', deployed: true },
+  { icon: '🔧', name: 'Tech Support', status: 'On Call — 3 engineers', deployed: false },
 ];
 
 const TIMELINE = [
-  { time:'09:00', event:'Gates Open', note:'All 8 gates operational', color:'#22c55e' },
-  { time:'10:30', event:'Opening Ceremony', note:'Expected 40,000 attendees', color:'#7c3aed' },
-  { time:'12:00', event:'Match 1 Begins', note:'Zone A/B at 80% capacity', color:'#2563eb' },
-  { time:'13:45', event:'Halftime Break', note:'Peak food court activity', color:'#f97316' },
-  { time:'14:30', event:'Match 1 Resumes', note:'Crowd flow peak expected', color:'#2563eb' },
-  { time:'16:30', event:'Match 1 Ends', note:'Evacuation protocol initiated', color:'#ef4444' },
-  { time:'18:00', event:'Match 2 Begins', note:'Full capacity expected', color:'#7c3aed' },
+  { time: '09:00', event: 'Gates Open', note: 'All 8 gates operational', color: '#22c55e' },
+  { time: '10:30', event: 'Opening Ceremony', note: 'Expected 40,000 attendees', color: '#7c3aed' },
+  { time: '12:00', event: 'Match 1 Begins', note: 'Zone A/B at 80% capacity', color: '#2563eb' },
+  { time: '13:45', event: 'Halftime Break', note: 'Peak food court activity', color: '#f97316' },
+  { time: '14:30', event: 'Match 1 Resumes', note: 'Crowd flow peak expected', color: '#2563eb' },
+  { time: '16:30', event: 'Match 1 Ends', note: 'Evacuation protocol initiated', color: '#ef4444' },
+  { time: '18:00', event: 'Match 2 Begins', note: 'Full capacity expected', color: '#7c3aed' },
 ];
 
 const NAV_STEPS = {
   seat: [
-    { step:'Head East along Concourse B', dist:'80m' },
-    { step:'Take escalator to Level 2', dist:'Floor +1' },
-    { step:'Enter Block D through Gate D-2', dist:'60m' },
-    { step:'Follow row indicators to Row 12', dist:'30m' },
-    { step:'Your seat: D12, Seat 7 (Aisle)', dist:'Arrived!' },
+    { step: 'Head East along Concourse B', dist: '80m' },
+    { step: 'Take escalator to Level 2', dist: 'Floor +1' },
+    { step: 'Enter Block D through Gate D-2', dist: '60m' },
+    { step: 'Follow row indicators to Row 12', dist: '30m' },
+    { step: 'Your seat: D12, Seat 7 (Aisle)', dist: 'Arrived!' },
   ],
   food: [
-    { step:'Turn right at current position', dist:'10m' },
-    { step:'Continue along Corridor 3A', dist:'45m' },
-    { step:'Food Court C is on your left', dist:'20m' },
-    { step:'Estimated wait time: 4 minutes', dist:'Arrived!' },
+    { step: 'Turn right at current position', dist: '10m' },
+    { step: 'Continue along Corridor 3A', dist: '45m' },
+    { step: 'Food Court C is on your left', dist: '20m' },
+    { step: 'Estimated wait time: 4 minutes', dist: 'Arrived!' },
   ],
   toilet: [
-    { step:'Go straight ahead 20m', dist:'20m' },
-    { step:'Turn left at the blue signage', dist:'15m' },
-    { step:'Accessible restroom on right', dist:'10m' },
-    { step:'Restroom — Accessible', dist:'Arrived!' },
+    { step: 'Go straight ahead 20m', dist: '20m' },
+    { step: 'Turn left at the blue signage', dist: '15m' },
+    { step: 'Accessible restroom on right', dist: '10m' },
+    { step: 'Restroom — Accessible', dist: 'Arrived!' },
   ],
   medical: [
-    { step:'Head towards main concourse', dist:'50m' },
-    { step:'Follow red medical cross signs', dist:'40m' },
-    { step:'Medical Aid Station — Level 1', dist:'20m' },
-    { step:'Staff available 24/7', dist:'Arrived!' },
+    { step: 'Head towards main concourse', dist: '50m' },
+    { step: 'Follow red medical cross signs', dist: '40m' },
+    { step: 'Medical Aid Station — Level 1', dist: '20m' },
+    { step: 'Staff available 24/7', dist: 'Arrived!' },
   ],
   exit: [
-    { step:'Turn back towards Gate 3', dist:'30m' },
-    { step:'Exit through Gate 3 — East', dist:'70m' },
-    { step:'Parking lot and transport hubs ahead', dist:'Arrived!' },
+    { step: 'Turn back towards Gate 3', dist: '30m' },
+    { step: 'Exit through Gate 3 — East', dist: '70m' },
+    { step: 'Parking lot and transport hubs ahead', dist: 'Arrived!' },
   ],
   parking: [
-    { step:'Use VIP elevator at Concourse A', dist:'120m' },
-    { step:'Take lift to Level P3', dist:'Floor -3' },
-    { step:'VIP parking bays 101–150', dist:'Arrived!' },
+    { step: 'Use VIP elevator at Concourse A', dist: '120m' },
+    { step: 'Take lift to Level P3', dist: 'Floor -3' },
+    { step: 'VIP parking bays 101–150', dist: 'Arrived!' },
   ],
 };
 
 const POIS = [
-  { emoji:'🍔', name:'Food Court C', dist:'45m' },
-  { emoji:'🚻', name:'Restroom', dist:'20m' },
-  { emoji:'🏥', name:'Medical', dist:'110m' },
-  { emoji:'🛍️', name:'Merchandise', dist:'60m' },
-  { emoji:'☕', name:'Café Hub', dist:'35m' },
-  { emoji:'🅰️', name:'ATM', dist:'15m' },
-  { emoji:'ℹ️', name:'Info Desk', dist:'80m' },
-  { emoji:'🚪', name:'Exit Gate 3', dist:'100m' },
+  { emoji: '🍔', name: 'Food Court C', dist: '45m' },
+  { emoji: '🚻', name: 'Restroom', dist: '20m' },
+  { emoji: '🏥', name: 'Medical', dist: '110m' },
+  { emoji: '🛍️', name: 'Merchandise', dist: '60m' },
+  { emoji: '☕', name: 'Café Hub', dist: '35m' },
+  { emoji: '🅰️', name: 'ATM', dist: '15m' },
+  { emoji: 'ℹ️', name: 'Info Desk', dist: '80m' },
+  { emoji: '🚪', name: 'Exit Gate 3', dist: '100m' },
 ];
 
 const TASKS = [
-  { name:'Monitor Zone F density', zone:'Zone F', priority:'#ef4444', assignee:'Team Alpha' },
-  { name:'Assist accessibility guests', zone:'East Gate', priority:'#7c3aed', assignee:'Volunteer A3' },
-  { name:'Restock hydration stations', zone:'Zones C & F', priority:'#f97316', assignee:'Ops Unit 2' },
-  { name:'PA announcement broadcast', zone:'All Zones', priority:'#eab308', assignee:'Comms Team' },
-  { name:'CCTV review Gate 7 area', zone:'Gate 7', priority:'#ef4444', assignee:'Security B1' },
-  { name:'Medical check post-incident D12', zone:'Section D12', priority:'#ef4444', assignee:'Medical 3' },
-  { name:'Update digital signage — halftime', zone:'Concourse B', priority:'#22c55e', assignee:'Tech Support' },
-  { name:'Volunteer rotation — Shift 3', zone:'All Zones', priority:'#22c55e', assignee:'Vol. Coordinator' },
+  { name: 'Monitor Zone F density', zone: 'Zone F', priority: '#ef4444', assignee: 'Team Alpha' },
+  { name: 'Assist accessibility guests', zone: 'East Gate', priority: '#7c3aed', assignee: 'Volunteer A3' },
+  { name: 'Restock hydration stations', zone: 'Zones C & F', priority: '#f97316', assignee: 'Ops Unit 2' },
+  { name: 'PA announcement broadcast', zone: 'All Zones', priority: '#eab308', assignee: 'Comms Team' },
+  { name: 'CCTV review Gate 7 area', zone: 'Gate 7', priority: '#ef4444', assignee: 'Security B1' },
+  { name: 'Medical check post-incident D12', zone: 'Section D12', priority: '#ef4444', assignee: 'Medical 3' },
+  { name: 'Update digital signage — halftime', zone: 'Concourse B', priority: '#22c55e', assignee: 'Tech Support' },
+  { name: 'Volunteer rotation — Shift 3', zone: 'All Zones', priority: '#22c55e', assignee: 'Vol. Coordinator' },
 ];
 
 const STAFF_SUMMARY = [
-  { icon:'👮', num:148, label:'Security', color:'#7c3aed' },
-  { icon:'🚑', num:32,  label:'Medics',   color:'#ef4444' },
-  { icon:'🤝', num:284, label:'Volunteers', color:'#10b981' },
-  { icon:'🔧', num:56,  label:'Operations', color:'#f97316' },
+  { icon: '👮', num: 148, label: 'Security', color: '#7c3aed' },
+  { icon: '🚑', num: 32, label: 'Medics', color: '#ef4444' },
+  { icon: '🤝', num: 284, label: 'Volunteers', color: '#10b981' },
+  { icon: '🔧', num: 56, label: 'Operations', color: '#f97316' },
 ];
 
 const LANG_STATS = [
-  { name:'English', pct:38, color:'#2563eb' },
-  { name:'Hindi',   pct:22, color:'#f97316' },
-  { name:'Spanish', pct:14, color:'#dc2626' },
-  { name:'French',  pct:9,  color:'#0891b2' },
-  { name:'Arabic',  pct:7,  color:'#059669' },
-  { name:'Chinese', pct:5,  color:'#7c3aed' },
-  { name:'Others',  pct:5,  color:'#94a3b8' },
+  { name: 'English', pct: 38, color: '#2563eb' },
+  { name: 'Hindi', pct: 22, color: '#f97316' },
+  { name: 'Spanish', pct: 14, color: '#dc2626' },
+  { name: 'French', pct: 9, color: '#0891b2' },
+  { name: 'Arabic', pct: 7, color: '#059669' },
+  { name: 'Chinese', pct: 5, color: '#7c3aed' },
+  { name: 'Others', pct: 5, color: '#94a3b8' },
 ];
 
 const SUPPORTED_LANGS = [
-  '🇺🇸 EN','🇮🇳 HI','🇪🇸 ES','🇫🇷 FR','🇸🇦 AR','🇨🇳 ZH','🇯🇵 JA','🇩🇪 DE',
-  '🇧🇷 PT','🇰🇷 KO','🇮🇹 IT','🇷🇺 RU','🇹🇷 TR','🇳🇱 NL','🇸🇪 SV','🇵🇱 PL',
-  '🇺🇦 UK','🇹🇭 TH','🇻🇳 VI','🇮🇩 ID','🇲🇾 MS','🇵🇭 TL','🇬🇷 EL','🇨🇿 CS',
-  '🇷🇴 RO','🇭🇺 HU','🇫🇮 FI','🇩🇰 DA','🇳🇴 NO','🇮🇱 HE','🇦🇪 FA','🇪🇬 AR',
-  '🇿🇦 AF','🇧🇩 BN','🇵🇰 UR','🇨🇳 ZH-TW','🇧🇬 BG','🇨🇷 HR','🇸🇮 SL','🇸🇰 SK',
+  '🇺🇸 EN', '🇮🇳 HI', '🇪🇸 ES', '🇫🇷 FR', '🇸🇦 AR', '🇨🇳 ZH', '🇯🇵 JA', '🇩🇪 DE',
+  '🇧🇷 PT', '🇰🇷 KO', '🇮🇹 IT', '🇷🇺 RU', '🇹🇷 TR', '🇳🇱 NL', '🇸🇪 SV', '🇵🇱 PL',
+  '🇺🇦 UK', '🇹🇭 TH', '🇻🇳 VI', '🇮🇩 ID', '🇲🇾 MS', '🇵🇭 TL', '🇬🇷 EL', '🇨🇿 CS',
+  '🇷🇴 RO', '🇭🇺 HU', '🇫🇮 FI', '🇩🇰 DA', '🇳🇴 NO', '🇮🇱 HE', '🇦🇪 FA', '🇪🇬 AR',
+  '🇿🇦 AF', '🇧🇩 BN', '🇵🇰 UR', '🇨🇳 ZH-TW', '🇧🇬 BG', '🇨🇷 HR', '🇸🇮 SL', '🇸🇰 SK',
 ];
 
 // ─── GenAI Persona Responses (7 roles) ───────────────────────────────────────
@@ -844,13 +861,13 @@ const AI_RESPONSES = {
 };
 
 const QUICK_PROMPTS = {
-  fan:       ['Where is my seat?', 'Find nearest food court', 'Locate restroom', 'How crowded is it?', 'Best exit route?'],
-  staff:     ['Show active incidents', 'Check patrol coverage', 'Current crowd stats', 'Resource status'],
+  fan: ['Where is my seat?', 'Find nearest food court', 'Locate restroom', 'How crowded is it?', 'Best exit route?'],
+  staff: ['Show active incidents', 'Check patrol coverage', 'Current crowd stats', 'Resource status'],
   volunteer: ['Show my assignment', 'Emergency protocols', 'Shift details', 'Where is lost & found?'],
   organizer: ['Event summary', 'AI predictions', 'Revenue report', 'Staff utilization'],
-  security:  ['Perimeter status', 'Threat assessment', 'Deploy security team', 'CCTV coverage gaps'],
-  medical:   ['Active medical situations', 'Heat risk assessment', 'Dispatch medical unit', 'Medical supply status'],
-  vendor:    ['Optimize vendor placement', 'Low stock alerts', 'Queue analytics', 'Revenue forecast'],
+  security: ['Perimeter status', 'Threat assessment', 'Deploy security team', 'CCTV coverage gaps'],
+  medical: ['Active medical situations', 'Heat risk assessment', 'Dispatch medical unit', 'Medical supply status'],
+  vendor: ['Optimize vendor placement', 'Low stock alerts', 'Queue analytics', 'Revenue forecast'],
 };
 
 const TRANSLATIONS = {
@@ -964,14 +981,14 @@ function showSection(name, linkEl) {
  * @param {string} name - The section name to initialise
  */
 function initSection(name) {
-  switch(name) {
-    case 'dashboard':   initDashboard();  break;
-    case 'crowd':       initCrowd();      break;
-    case 'navigation':  initNavigation(); break;
-    case 'decisions':   initDecisions();  break;
-    case 'assistant':   initAssistant();  break;
-    case 'staff':       initStaff();      break;
-    case 'audit':       initAudit();      break;
+  switch (name) {
+    case 'dashboard': initDashboard(); break;
+    case 'crowd': initCrowd(); break;
+    case 'navigation': initNavigation(); break;
+    case 'decisions': initDecisions(); break;
+    case 'assistant': initAssistant(); break;
+    case 'staff': initStaff(); break;
+    case 'audit': initAudit(); break;
     default: console.warn('VenueIQ: unknown section', name);
   }
 }
@@ -992,7 +1009,7 @@ function initHeroCanvas() {
   resize();
   window.addEventListener('resize', resize, { passive: true });
 
-  const particles = Array.from({length: PARTICLE_COUNT}, () => ({
+  const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
     vx: (Math.random() - .5) * .5,
@@ -1023,12 +1040,12 @@ function initHeroCanvas() {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx*dx + dy*dy);
+          const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < PARTICLE_CONNECTION_DIST) {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(124,58,237,${.15 * (1 - dist/PARTICLE_CONNECTION_DIST)})`;
+            ctx.strokeStyle = `rgba(124,58,237,${.15 * (1 - dist / PARTICLE_CONNECTION_DIST)})`;
             ctx.lineWidth = .5;
             ctx.stroke();
           }
@@ -1112,26 +1129,26 @@ function drawHeatmap() {
     ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = 'rgba(99,120,180,.3)';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(20, 20, W-40, H-40);
+    ctx.strokeRect(20, 20, W - 40, H - 40);
     ctx.fillStyle = 'rgba(5,46,22,.5)';
-    ctx.fillRect(W*0.25, H*0.2, W*0.5, H*0.6);
+    ctx.fillRect(W * 0.25, H * 0.2, W * 0.5, H * 0.6);
     ctx.strokeStyle = 'rgba(34,197,94,.2)';
-    ctx.strokeRect(W*0.25, H*0.2, W*0.5, H*0.6);
+    ctx.strokeRect(W * 0.25, H * 0.2, W * 0.5, H * 0.6);
     ctx.beginPath();
-    ctx.arc(W/2, H/2, 40, 0, Math.PI*2);
+    ctx.arc(W / 2, H / 2, 40, 0, Math.PI * 2);
     ctx.stroke();
     const zones = [
-      { x:0.05, y:0.1,  w:.18, h:.8, density:.88, color:[249,115,22] },
-      { x:0.77, y:0.1,  w:.18, h:.8, density:.72, color:[234,179,8]  },
-      { x:0.24, y:0.03, w:.52, h:.14, density:.95, color:[239,68,68]  },
-      { x:0.24, y:0.83, w:.52, h:.14, density:.65, color:[34,197,94]  },
-      { x:0.05, y:0.38, w:.18, h:.24, density:.45, color:[34,197,94]  },
-      { x:0.77, y:0.38, w:.18, h:.24, density:.55, color:[234,179,8]  },
+      { x: 0.05, y: 0.1, w: .18, h: .8, density: .88, color: [249, 115, 22] },
+      { x: 0.77, y: 0.1, w: .18, h: .8, density: .72, color: [234, 179, 8] },
+      { x: 0.24, y: 0.03, w: .52, h: .14, density: .95, color: [239, 68, 68] },
+      { x: 0.24, y: 0.83, w: .52, h: .14, density: .65, color: [34, 197, 94] },
+      { x: 0.05, y: 0.38, w: .18, h: .24, density: .45, color: [34, 197, 94] },
+      { x: 0.77, y: 0.38, w: .18, h: .24, density: .55, color: [234, 179, 8] },
     ];
     zones.forEach(z => {
       const x = z.x * W, y = z.y * H, w = z.w * W, h = z.h * H;
-      const grad = ctx.createRadialGradient(x+w/2, y+h/2, 0, x+w/2, y+h/2, Math.max(w,h)/2);
-      const [r,g,b] = z.color;
+      const grad = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, Math.max(w, h) / 2);
+      const [r, g, b] = z.color;
       grad.addColorStop(0, `rgba(${r},${g},${b},${z.density * .7})`);
       grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
       ctx.fillStyle = grad;
@@ -1139,7 +1156,7 @@ function drawHeatmap() {
       ctx.fillStyle = 'rgba(255,255,255,.75)';
       ctx.font = 'bold 11px Inter';
       ctx.textAlign = 'center';
-      ctx.fillText(`${Math.round(z.density*100)}%`, x+w/2, y+h/2+4);
+      ctx.fillText(`${Math.round(z.density * 100)}%`, x + w / 2, y + h / 2 + 4);
     });
   } catch (err) {
     console.warn('VenueIQ: heatmap render error', err);
@@ -1154,7 +1171,7 @@ function drawZoneChart() {
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
     const labels = ZONES.map(z => z.name.split('—')[0].trim());
-    const values = ZONES.map(z => Math.round((z.count/z.cap)*100));
+    const values = ZONES.map(z => Math.round((z.count / z.cap) * 100));
     const colors = ZONES.map(z => z.color);
     const barH = 30, spacing = 12, startY = 20, maxBarW = W - 110;
     values.forEach((v, i) => {
@@ -1162,7 +1179,7 @@ function drawZoneChart() {
       ctx.fillStyle = 'rgba(255,255,255,.6)';
       ctx.font = '10px Inter';
       ctx.textAlign = 'right';
-      ctx.fillText(labels[i], 82, y + barH/2 + 4);
+      ctx.fillText(labels[i], 82, y + barH / 2 + 4);
       ctx.fillStyle = 'rgba(255,255,255,.06)';
       roundRect(ctx, 88, y, maxBarW, barH, 4);
       ctx.fill();
@@ -1176,7 +1193,7 @@ function drawZoneChart() {
       ctx.fillStyle = 'rgba(255,255,255,.85)';
       ctx.textAlign = 'left';
       ctx.font = 'bold 10px Inter';
-      ctx.fillText(`${v}%`, 88 + barW + 4, y + barH/2 + 4);
+      ctx.fillText(`${v}%`, 88 + barW + 4, y + barH / 2 + 4);
     });
   } catch (err) {
     console.warn('VenueIQ: zone chart render error', err);
@@ -1274,22 +1291,22 @@ function drawCrowdMap() {
     ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = 'rgba(99,120,180,.25)';
     ctx.lineWidth = 1.5;
-    roundRect(ctx, 20, 20, W-40, H-40, 12);
+    roundRect(ctx, 20, 20, W - 40, H - 40, 12);
     ctx.stroke();
     ctx.fillStyle = 'rgba(5,46,22,.6)';
-    roundRect(ctx, W*.22, H*.18, W*.56, H*.64, 6);
+    roundRect(ctx, W * .22, H * .18, W * .56, H * .64, 6);
     ctx.fill();
     const crowdZones = [
-      { label:'N', x:.22, y:.04, w:.56, h:.13, density:.95 },
-      { label:'S', x:.22, y:.83, w:.56, h:.13, density:.65 },
-      { label:'W', x:.03, y:.18, w:.18, h:.64, density:.88 },
-      { label:'E', x:.79, y:.18, w:.18, h:.64, density:.72 },
+      { label: 'N', x: .22, y: .04, w: .56, h: .13, density: .95 },
+      { label: 'S', x: .22, y: .83, w: .56, h: .13, density: .65 },
+      { label: 'W', x: .03, y: .18, w: .18, h: .64, density: .88 },
+      { label: 'E', x: .79, y: .18, w: .18, h: .64, density: .72 },
     ];
     crowdZones.forEach(z => {
       const x = z.x * W, y = z.y * H, w = z.w * W, h = z.h * H;
       const d = z.density;
-      const grad = ctx.createRadialGradient(x+w/2, y+h/2, 0, x+w/2, y+h/2, Math.max(w,h)/1.5);
-      grad.addColorStop(0, `rgba(239,68,68,${d*.65})`);
+      const grad = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, Math.max(w, h) / 1.5);
+      grad.addColorStop(0, `rgba(239,68,68,${d * .65})`);
       grad.addColorStop(1, `rgba(239,68,68,0.05)`);
       ctx.fillStyle = grad;
       roundRect(ctx, x, y, w, h, 4);
@@ -1588,9 +1605,9 @@ function initChat() {
  * renders a structured Explainable AI decision card.
  */
 function sendMessage() {
-  const input  = document.getElementById('chatInput');
+  const input = document.getElementById('chatInput');
   const langSel = document.getElementById('chatLang');
-  const raw    = (input.value || '').trim().slice(0, MAX_INPUT_LENGTH);
+  const raw = (input.value || '').trim().slice(0, MAX_INPUT_LENGTH);
   if (!raw) return;
 
   // Rate limiting
@@ -1733,7 +1750,7 @@ function renderPromptChips() {
   const el = document.getElementById('promptChips');
   if (!el) return;
   el.innerHTML = (QUICK_PROMPTS[STATE.currentPersona] || []).map(p =>
-    `<button class="chip" onclick="sendQuickPrompt('${sanitizeHTML(p).replace(/'/g,'\\&#39;')}')">${sanitizeHTML(p)}</button>`
+    `<button class="chip" onclick="sendQuickPrompt('${sanitizeHTML(p).replace(/'/g, '\\&#39;')}')">${sanitizeHTML(p)}</button>`
   ).join('');
 }
 
@@ -1801,7 +1818,7 @@ function doTranslate() {
 /** Swaps source and target language selectors. */
 function swapLangs() {
   const from = document.getElementById('fromLang');
-  const to   = document.getElementById('toLang');
+  const to = document.getElementById('toLang');
   if (!from || !to) return;
   const tmp = from.value;
   from.value = to.value;
@@ -1876,8 +1893,8 @@ function aiAnalyzeIncident(id) {
   const inc = INCIDENTS.find(i => i.id === id);
   const confidence = (Math.random() * AI_CONFIDENCE_RANGE + AI_CONFIDENCE_MIN).toFixed(2);
   const protocols = ['Delta', 'Alpha', 'Sigma', 'Bravo', 'Omega'];
-  const proto = `Protocol ${Math.floor(Math.random()*5+1)} — ${protocols[Math.floor(Math.random()*5)]}`;
-  const escalation = Math.floor(Math.random()*30+15);
+  const proto = `Protocol ${Math.floor(Math.random() * 5 + 1)} — ${protocols[Math.floor(Math.random() * 5)]}`;
+  const escalation = Math.floor(Math.random() * 30 + 15);
   addCommandMessage('ai',
     `🤖 AI Analysis — "${sanitizeHTML(inc?.title ?? 'Unknown')}"\n` +
     `• Confidence Score: ${confidence} / 1.00\n` +
@@ -1986,19 +2003,19 @@ function drawStaffCanvas() {
     ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = 'rgba(99,120,180,.25)';
     ctx.lineWidth = 1.5;
-    roundRect(ctx, 10, 10, W-20, H-20, 10);
+    roundRect(ctx, 10, 10, W - 20, H - 20, 10);
     ctx.stroke();
     ctx.fillStyle = 'rgba(5,46,22,.5)';
-    roundRect(ctx, W*.25, H*.2, W*.5, H*.6, 6);
+    roundRect(ctx, W * .25, H * .2, W * .5, H * .6, 6);
     ctx.fill();
     const staffDots = [
-      {x:.12,y:.3,color:'#7c3aed'},{x:.85,y:.3,color:'#7c3aed'},{x:.5,y:.1,color:'#06b6d4'},
-      {x:.2,y:.7,color:'#ef4444'},{x:.8,y:.7,color:'#ef4444'},{x:.5,y:.9,color:'#10b981'},
-      {x:.3,y:.5,color:'#10b981'},{x:.7,y:.5,color:'#10b981'},{x:.5,y:.5,color:'#f97316'},
+      { x: .12, y: .3, color: '#7c3aed' }, { x: .85, y: .3, color: '#7c3aed' }, { x: .5, y: .1, color: '#06b6d4' },
+      { x: .2, y: .7, color: '#ef4444' }, { x: .8, y: .7, color: '#ef4444' }, { x: .5, y: .9, color: '#10b981' },
+      { x: .3, y: .5, color: '#10b981' }, { x: .7, y: .5, color: '#10b981' }, { x: .5, y: .5, color: '#f97316' },
     ];
     staffDots.forEach(d => {
       ctx.beginPath();
-      ctx.arc(d.x*W, d.y*H, 8, 0, Math.PI*2);
+      ctx.arc(d.x * W, d.y * H, 8, 0, Math.PI * 2);
       ctx.fillStyle = d.color;
       ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,.3)';
@@ -2113,7 +2130,7 @@ function drawBarChart(ctx, W, H, data) {
     ctx.fillStyle = 'rgba(255,255,255,.6)';
     ctx.font = '9px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText(sanitizeHTML(d.label || ''), x + barW/2, H - padB + 14);
+    ctx.fillText(sanitizeHTML(d.label || ''), x + barW / 2, H - padB + 14);
   });
 }
 
@@ -2140,7 +2157,7 @@ function resetCrowdMap() {
   }
   // Reset zone counts to original
   ZONES[0].count = 12400; ZONES[1].count = 9800; ZONES[2].count = 11200;
-  ZONES[3].count = 7600;  ZONES[4].count = 3200; ZONES[5].count = 1980;
+  ZONES[3].count = 7600; ZONES[4].count = 3200; ZONES[5].count = 1980;
   renderZoneCards();
   drawCrowdMap();
 }
@@ -2157,23 +2174,23 @@ function drawResponseChart() {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
   const data = [
-    { label:'Security', val:2.4, color:'#7c3aed' },
-    { label:'Medical', val:3.8, color:'#06b6d4' },
-    { label:'Volunteer', val:5.2, color:'#10b981' },
-    { label:'Ops', val:4.1, color:'#f97316' },
-    { label:'Info', val:1.9, color:'#eab308' },
+    { label: 'Security', val: 2.4, color: '#7c3aed' },
+    { label: 'Medical', val: 3.8, color: '#06b6d4' },
+    { label: 'Volunteer', val: 5.2, color: '#10b981' },
+    { label: 'Ops', val: 4.1, color: '#f97316' },
+    { label: 'Info', val: 1.9, color: '#eab308' },
   ];
   drawBarChart(ctx, W, H, data.map(d => ({ ...d, val: d.val * 20 })));
 
   // Override labels with minutes
   ctx.fillStyle = 'rgba(255,255,255,.5)';
   ctx.font = '8px Inter'; ctx.textAlign = 'center';
-  const padL=10, padR=10, chartW=W-padL-padR;
+  const padL = 10, padR = 10, chartW = W - padL - padR;
   const gap = chartW / data.length;
   const barW = gap * .6;
   data.forEach((d, i) => {
     const x = padL + i * gap + (gap - barW) / 2;
-    ctx.fillText(d.val + 'min', x + barW/2, H-35);
+    ctx.fillText(d.val + 'min', x + barW / 2, H - 35);
   });
 }
 
@@ -2189,12 +2206,12 @@ function drawCoverageChart() {
   ctx.clearRect(0, 0, W, H);
 
   const zones = [
-    { name:'Zone A', pct:95, color:'#22c55e' },
-    { name:'Zone B', pct:88, color:'#22c55e' },
-    { name:'Zone C', pct:72, color:'#eab308' },
-    { name:'Zone D', pct:91, color:'#22c55e' },
-    { name:'Zone E', pct:60, color:'#f97316' },
-    { name:'Zone F', pct:45, color:'#ef4444' },
+    { name: 'Zone A', pct: 95, color: '#22c55e' },
+    { name: 'Zone B', pct: 88, color: '#22c55e' },
+    { name: 'Zone C', pct: 72, color: '#eab308' },
+    { name: 'Zone D', pct: 91, color: '#22c55e' },
+    { name: 'Zone E', pct: 60, color: '#f97316' },
+    { name: 'Zone F', pct: 45, color: '#ef4444' },
   ];
   drawBarChart(ctx, W, H, zones.map(z => ({ ...z, val: z.pct, label: z.name })));
 }
@@ -2207,11 +2224,11 @@ function renderSkillMatch() {
   const el = document.getElementById('skillMatch');
   if (!el) return;
   const skills = [
-    { label:'First Aid', pct:92, color:'#ef4444' },
-    { label:'Languages', pct:78, color:'#7c3aed' },
-    { label:'Navigation', pct:88, color:'#06b6d4' },
-    { label:'Crowd Ctrl', pct:71, color:'#f97316' },
-    { label:'Technical', pct:85, color:'#10b981' },
+    { label: 'First Aid', pct: 92, color: '#ef4444' },
+    { label: 'Languages', pct: 78, color: '#7c3aed' },
+    { label: 'Navigation', pct: 88, color: '#06b6d4' },
+    { label: 'Crowd Ctrl', pct: 71, color: '#f97316' },
+    { label: 'Technical', pct: 85, color: '#10b981' },
   ];
   el.innerHTML = skills.map(s => `
     <div class="skill-row">
@@ -2246,5 +2263,97 @@ window.addEventListener('scroll', () => {
   const navbar = document.getElementById('navbar');
   if (navbar) {
     navbar.style.background = window.scrollY > 20 ? 'rgba(6,11,23,.95)' : 'rgba(6,11,23,.85)';
+  }
+});
+
+// ─── CSP-safe Event Delegation ─────────────────────────────────────────────────
+// The page no longer uses inline onclick/onchange/oninput attributes so it works
+// under a strict Content-Security-Policy (script-src 'self', no 'unsafe-inline').
+// Elements instead carry data-action / data-onchange / data-oninput attributes,
+// and these three delegated listeners route events to the right function.
+
+/**
+ * Wraps STATE.voiceOutput update + announcement for the voice-output toggle
+ * (previously an inline multi-statement onchange handler).
+ * @param {boolean} checked
+ */
+function toggleVoiceOutputAction(checked) {
+  STATE.voiceOutput = checked;
+  announce(checked ? 'Voice output enabled' : 'Voice output disabled');
+}
+
+const ACTION_HANDLERS = {
+  showSection: (el, arg) => {
+    const linkEl = document.getElementById(`nav-${arg}`) || document.querySelector(`[href="#${arg}"]`);
+    showSection(arg, linkEl);
+  },
+  refreshDashboard: () => refreshDashboard(),
+  toggleCrowdSim: () => toggleCrowdSim(),
+  resetCrowdMap: () => resetCrowdMap(),
+  setNavMode: (el, arg) => setNavMode(arg, el),
+  launchAR: () => launchAR(),
+  addEmergencyAlert: () => addEmergencyAlert(),
+  clearAlerts: () => clearAlerts(),
+  filterIncidents: (el, arg) => filterIncidents(arg, el),
+  sendCommandQuery: () => sendCommandQuery(),
+  selectPersona: (el, arg) => selectPersona(arg),
+  clearChat: () => clearChat(),
+  exportChat: () => exportChat(),
+  toggleVoice: () => toggleVoice(),
+  sendMessage: () => sendMessage(),
+  swapLangs: () => swapLangs(),
+  doTranslate: () => doTranslate(),
+  speakTranslation: () => speakTranslation(),
+  optimizeStaff: () => optimizeStaff(),
+  renderAuditPanel: () => renderAuditPanel(),
+  auditExport: () => AuditLog.export(),
+  auditClear: () => AuditLog.clear(),
+  closeAR: () => closeAR(),
+  toggleAccessibility: () => toggleAccessibility(),
+};
+
+const CHANGE_HANDLERS = {
+  updateNavRoute: () => updateNavRoute(),
+  changeUILanguage: () => changeUILanguage(),
+  applyHighContrast: (el) => applyHighContrast(el.checked),
+  applyLargeText: (el) => applyLargeText(el.checked),
+  applyReducedMotion: (el) => applyReducedMotion(el.checked),
+  toggleVoiceOutputAction: (el) => toggleVoiceOutputAction(el.checked),
+};
+
+const INPUT_HANDLERS = {
+  liveTranslate: () => liveTranslate(),
+};
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const handler = ACTION_HANDLERS[el.dataset.action];
+  if (handler) {
+    handler(el, el.dataset.arg);
+  } else {
+    console.warn('VenueIQ: no handler registered for data-action', el.dataset.action);
+  }
+});
+
+document.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-onchange]');
+  if (!el) return;
+  const handler = CHANGE_HANDLERS[el.dataset.onchange];
+  if (handler) {
+    handler(el);
+  } else {
+    console.warn('VenueIQ: no handler registered for data-onchange', el.dataset.onchange);
+  }
+});
+
+document.addEventListener('input', (e) => {
+  const el = e.target.closest('[data-oninput]');
+  if (!el) return;
+  const handler = INPUT_HANDLERS[el.dataset.oninput];
+  if (handler) {
+    handler(el);
+  } else {
+    console.warn('VenueIQ: no handler registered for data-oninput', el.dataset.oninput);
   }
 });
